@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
 )
 
 from ui.theme import COLORS, MIN_TOUCH
+from i18n import t
 
 
 def pil_to_pixmap(pil_image) -> QPixmap:
@@ -21,9 +22,9 @@ def pil_to_pixmap(pil_image) -> QPixmap:
 
 
 class NavItem:
-    def __init__(self, key: str, label: str, icon_text: str):
+    def __init__(self, key: str, label_key: str, icon_text: str):
         self.key = key
-        self.label = label
+        self.label_key = label_key  # khoa i18n, de retranslate khi doi ngon ngu
         self.icon_text = icon_text
 
 
@@ -41,12 +42,13 @@ class BottomNavBar(QFrame):
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(4)
 
+        self._items = items
         self._group = QButtonGroup(self)
         self._group.setExclusive(True)
         self._buttons: dict[str, QPushButton] = {}
 
         for item in items:
-            btn = QPushButton(f"{item.icon_text}\n{item.label}")
+            btn = QPushButton(f"{item.icon_text}\n{t(item.label_key)}")
             btn.setObjectName("NavButton")
             btn.setCheckable(True)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -63,6 +65,12 @@ class BottomNavBar(QFrame):
         if key in self._buttons:
             self._buttons[key].setChecked(True)
 
+    def retranslate(self):
+        for item in self._items:
+            btn = self._buttons.get(item.key)
+            if btn is not None:
+                btn.setText(f"{item.icon_text}\n{t(item.label_key)}")
+
 
 class StyleChip(QPushButton):
     """Mot 'chip' tron chon phong cach AI, dung trong carousel ngang."""
@@ -70,10 +78,14 @@ class StyleChip(QPushButton):
     def __init__(self, key: str, label: str, emoji: str, parent=None):
         super().__init__(parent)
         self.key = key
+        self.emoji = emoji
         self.setObjectName("StyleChip")
         self.setCheckable(True)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setText(f"{emoji}\n{label}")
+
+    def set_label(self, label: str):
+        self.setText(f"{self.emoji}\n{label}")
 
 
 class CompareSlider(QWidget):
@@ -108,7 +120,7 @@ class CompareSlider(QWidget):
 
         if self._before is None:
             painter.setPen(QColor(COLORS["text_muted"]))
-            painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, "Chưa có ảnh")
+            painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, t("compare.no_image"))
             painter.end()
             return
 
@@ -138,8 +150,8 @@ class CompareSlider(QWidget):
             painter.drawEllipse(divider_x - 16, handle_y - 16, 32, 32)
 
             painter.setPen(QColor("white"))
-            painter.drawText(QRect(8, 8, 60, 24), Qt.AlignmentFlag.AlignLeft, "AI")
-            painter.drawText(QRect(rect.width() - 68, 8, 60, 24), Qt.AlignmentFlag.AlignRight, "Gốc")
+            painter.drawText(QRect(8, 8, 60, 24), Qt.AlignmentFlag.AlignLeft, t("compare.after_label"))
+            painter.drawText(QRect(rect.width() - 68, 8, 60, 24), Qt.AlignmentFlag.AlignRight, t("compare.before_label"))
 
         painter.end()
 

@@ -5,6 +5,8 @@ import os
 import json
 from pathlib import Path
 
+from i18n import LANG_VI, detect_system_language
+
 APP_NAME = "PhotoAI Studio"
 APP_VERSION = "alpha-002"
 
@@ -17,6 +19,7 @@ DEFAULT_CONFIG = {
     "digicam_cmd_path": r"C:\Program Files\digiCamControl\CameraControlCmd.exe",
     "capture_folder": str(Path.home() / "Pictures" / "PhotoAIStudio" / "RawCaptures"),
     "output_folder": str(Path.home() / "Pictures" / "PhotoAIStudio" / "Edited"),
+    "language": LANG_VI,  # duoc ghi de bang ngon ngu he thong khi tao config lan dau, xem below
 }
 
 
@@ -31,8 +34,11 @@ def load_config() -> dict:
             return merged
         except (json.JSONDecodeError, OSError):
             pass
-    save_config(DEFAULT_CONFIG)
-    return DEFAULT_CONFIG.copy()
+    # Lan dau chay app (chua co config.json): doan ngon ngu theo he thong
+    first_run_cfg = DEFAULT_CONFIG.copy()
+    first_run_cfg["language"] = detect_system_language()
+    save_config(first_run_cfg)
+    return first_run_cfg
 
 
 def save_config(cfg: dict) -> None:

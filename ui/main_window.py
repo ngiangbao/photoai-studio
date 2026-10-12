@@ -16,6 +16,7 @@ from ai.manual_edit import ManualAdjustments, apply_adjustments, blend_with_orig
 from ui.theme import QSS
 from ui.widgets import BottomNavBar, NavItem
 from ui.pages import LibraryPage, AIEditPage, ManualEditPage, SettingsPage
+from i18n import t, set_language
 
 MANUAL_PREVIEW_MAX = 900  # px, de keo slider muot tren anh lon
 
@@ -54,18 +55,20 @@ class EditWorker(QThread):
         except GeminiEditError as exc:
             self.failed.emit(str(exc))
         except Exception as exc:
-            self.failed.emit(f"Lỗi không xác định: {exc}")
+            self.failed.emit(f"{t('error.gemini_api_call', error=exc)}")
 
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.cfg = load_config()
+        set_language(self.cfg.get("language", "vi"))
+
         self.setWindowTitle(f"{APP_NAME} ({APP_VERSION})")
         self.resize(420, 780)
         self.setMinimumSize(380, 640)
         self.setStyleSheet(QSS)
 
-        self.cfg = load_config()
         self.selected_photo_path: Optional[str] = None
         self.original_image: Optional[Image.Image] = None      # anh goc, full-res
         self.ai_raw_result: Optional[Image.Image] = None        # ket qua AI chua blend
@@ -102,10 +105,10 @@ class MainWindow(QMainWindow):
         root.addWidget(self.stack, stretch=1)
 
         self.nav = BottomNavBar([
-            NavItem("library", "Thư viện", "🖼️"),
-            NavItem("ai", "Chỉnh AI", "✨"),
-            NavItem("manual", "Chỉnh tay", "🎚️"),
-            NavItem("settings", "Cài đặt", "⚙️"),
+            NavItem("library", "nav.library", "🖼️"),
+            NavItem("ai", "nav.ai", "✨"),
+            NavItem("manual", "nav.manual", "🎚️"),
+            NavItem("settings", "nav.settings", "⚙️"),
         ])
         self.nav.tabChanged.connect(self._on_tab_changed)
         root.addWidget(self.nav)
@@ -119,8 +122,9 @@ class MainWindow(QMainWindow):
         self.manual_page.resetRequested.connect(self.on_manual_reset)
         self.manual_page.saveRequested.connect(self.on_manual_save_clicked)
         self.settings_page.settingsSaved.connect(self.on_settings_saved)
+        self.settings_page.languageChanged.connect(self.on_language_changed)
 
-        self.statusBar().showMessage("Sẵn sàng.")
+        self.statusBar().showMessage(t("status.ready"))
 
     def _on_tab_changed(self, key: str):
         index = {"library": 0, "ai": 1, "manual": 2, "settings": 3}.get(key, 0)
@@ -142,13 +146,12 @@ class MainWindow(QMainWindow):
     def on_capture_clicked(self):
         if not self.digicam.is_available():
             QMessageBox.warning(
-                self, "Thiếu digiCamControl",
-                "Không tìm thấy CameraControlCmd.exe. Vào Cài đặt để chỉnh đường dẫn, "
-                "hoặc cài digiCamControl tại digicamcontrol.com."
+                self, t("dialog.missing_digicam_title"),
+                t("dialog.missing_digicam_message"),
             )
             return
         self.library_page.capture_btn.setEnabled(False)
-        self.statusBar().showMessage("Đang chụp ảnh từ máy ảnh...")
+        self.statusBar().showMessage(t("status.capturing"))
         self._capture_worker = CaptureWorker(self.digicam)
         self._capture_worker.finished_ok.connect(self._on_capture_ok)
         self._capture_worker.failed.connect(self._on_capture_failed)
@@ -156,13 +159,13 @@ class MainWindow(QMainWindow):
 
     def _on_capture_ok(self, path: str):
         self.library_page.capture_btn.setEnabled(True)
-        self.statusBar().showMessage(f"Đã chụp: {Path(path).name}", 5000)
+        self.statusBar().showMessage(t("status.captured", name=Path(path).name), 5000)
         self.library_page.refresh(self.cfg["capture_folder"])
 
     def _on_capture_failed(self, message: str):
         self.library_page.capture_btn.setEnabled(True)
         self.statusBar().clearMessage()
-        QMessageBox.critical(self, "Lỗi chụp ảnh", message)
+        QMessageBox.critical(self, t("dialog.capture_error_title"), message)
 
     # ------------------------------------------------------------------
     # Chon anh
@@ -173,7 +176,7 @@ class MainWindow(QMainWindow):
             self.original_image = Image.open(path)
             self.original_image.load()
         except Exception as exc:
-            QMessageBox.critical(self, "Lỗi mở ảnh", f"Không thể mở ảnh:\n{exc}")
+            QMessageBox.critical(self, t("dialog.open_image_error_title"), t("dialog.open_image_error_message", error=exc))
             return
 
         self.ai_raw_result = None
@@ -197,21 +200,21 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
     def on_ai_process_requested(self, style_key: str, intensity: float, extra: str):
         if not self.selected_photo_path:
-            QMessageBox.information(self, "Chưa chọn ảnh", "Hãy chọn một ảnh ở Thư viện trước.")
+            QMessageBox.information(self, t("dialog.no_photo_selected_title"), t("dialog.no_photo_selected_message"))
             return
         if not self.cfg.get("gemini_api_key"):
-            QMessageBox.warning(self, "Thiếu API key", "Hãy vào Cài đặt để nhập Gemini API key.")
+            QMessageBox.warning(self, t("dialog.missing_api_key_title"), t("dialog.missing_api_key_message"))
             return
 
         try:
             editor = GeminiEditor(self.cfg["gemini_api_key"], self.cfg["gemini_model"])
         except GeminiEditError as exc:
-            QMessageBox.critical(self, "Lỗi cấu hình", str(exc))
+            QMessageBox.critical(self, t("dialog.config_error_title"), str(exc))
             return
 
         self._pending_intensity = intensity
         self.ai_page.process_btn.setEnabled(False)
-        self.statusBar().showMessage("AI đang xử lý ảnh, vui lòng chờ...")
+        self.statusBar().showMessage(t("status.ai_processing"))
         self._edit_worker = EditWorker(editor, self.selected_photo_path, style_key, extra)
         self._edit_worker.finished_ok.connect(self._on_ai_edit_ok)
         self._edit_worker.failed.connect(self._on_ai_edit_failed)
@@ -219,7 +222,7 @@ class MainWindow(QMainWindow):
 
     def _on_ai_edit_ok(self, pil_image: Image.Image):
         self.ai_page.process_btn.setEnabled(True)
-        self.statusBar().showMessage("Xử lý xong.", 5000)
+        self.statusBar().showMessage(t("status.ai_done"), 5000)
         self.ai_raw_result = pil_image
         self.ai_final_result = blend_with_original(self.original_image, pil_image, self._pending_intensity)
         self.ai_page.set_after_image(self.ai_final_result)
@@ -227,7 +230,7 @@ class MainWindow(QMainWindow):
     def _on_ai_edit_failed(self, message: str):
         self.ai_page.process_btn.setEnabled(True)
         self.statusBar().clearMessage()
-        QMessageBox.critical(self, "Lỗi xử lý AI", message)
+        QMessageBox.critical(self, t("dialog.ai_error_title"), message)
 
     def on_ai_save_clicked(self):
         if self.ai_final_result is None or not self.selected_photo_path:
@@ -272,7 +275,7 @@ class MainWindow(QMainWindow):
         src_name = Path(self.selected_photo_path).stem
         out_path = output_folder / f"{src_name}_{suffix}.jpg"
         image.convert("RGB").save(out_path, quality=95)
-        QMessageBox.information(self, "Đã lưu", f"Ảnh đã được lưu tại:\n{out_path}")
+        QMessageBox.information(self, t("dialog.saved_title"), t("dialog.saved_message", path=out_path))
 
     # ------------------------------------------------------------------
     # Cai dat
@@ -284,4 +287,18 @@ class MainWindow(QMainWindow):
         self.watcher.removePaths(self.watcher.directories())
         self.watcher.addPath(self.cfg["capture_folder"])
         self.library_page.refresh(self.cfg["capture_folder"])
-        self.statusBar().showMessage("Đã lưu cài đặt.", 3000)
+        self.statusBar().showMessage(t("settings.saved_status"), 3000)
+
+    def on_language_changed(self, lang_code: str):
+        """Doi ngon ngu ngay trong app, khong can khoi dong lai."""
+        set_language(lang_code)
+        self.retranslate_ui()
+
+    def retranslate_ui(self):
+        self.setWindowTitle(f"{APP_NAME} ({APP_VERSION})")
+        self.nav.retranslate()
+        self.library_page.retranslate()
+        self.ai_page.retranslate()
+        self.manual_page.retranslate()
+        self.settings_page.retranslate()
+        self.statusBar().showMessage(t("status.ready"))

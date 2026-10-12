@@ -8,14 +8,15 @@ from PIL import Image
 from PySide6.QtCore import Qt, QSize, Signal
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QPushButton,
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QListWidget, QListWidgetItem, QScrollArea, QFrame, QSlider, QLineEdit,
-    QFormLayout, QFileDialog, QTextEdit, QSizePolicy
+    QFormLayout, QFileDialog, QTextEdit, QComboBox
 )
 
 from ai.styles import STYLES
 from ai.manual_edit import ManualAdjustments
 from ui.widgets import StyleChip, CompareSlider, pil_to_pixmap
+from i18n import t, get_language, set_language, SUPPORTED_LANGUAGES, LANGUAGE_NAMES
 
 THUMB_SIZE = QSize(150, 150)
 
@@ -41,12 +42,6 @@ def caption(text: str) -> QLabel:
     return label
 
 
-def card_frame() -> QFrame:
-    frame = QFrame()
-    frame.setObjectName("Card")
-    return frame
-
-
 # ---------------------------------------------------------------------------
 # 1. Trang Thu vien
 # ---------------------------------------------------------------------------
@@ -61,11 +56,12 @@ class LibraryPage(QWidget):
         layout.setSpacing(16)
 
         header = QHBoxLayout()
-        header.addWidget(section_title("Thư viện"))
+        self.title_label = section_title(t("library.title"))
+        header.addWidget(self.title_label)
         header.addStretch()
         layout.addLayout(header)
 
-        self.capture_btn = QPushButton("📷  Chụp ảnh mới")
+        self.capture_btn = QPushButton(t("library.capture_button"))
         self.capture_btn.setObjectName("PrimaryButton")
         self.capture_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.capture_btn.clicked.connect(self.captureRequested.emit)
@@ -82,7 +78,7 @@ class LibraryPage(QWidget):
         )
         layout.addWidget(self.photo_list)
 
-        self.empty_hint = caption("Chưa có ảnh nào. Cắm máy ảnh qua USB rồi bấm \"Chụp ảnh mới\".")
+        self.empty_hint = caption(t("library.empty_hint"))
         layout.addWidget(self.empty_hint)
 
     def refresh(self, folder: str):
@@ -107,6 +103,11 @@ class LibraryPage(QWidget):
             self.photo_list.insertItem(0, item)
         self.empty_hint.setVisible(self.photo_list.count() == 0)
 
+    def retranslate(self):
+        self.title_label.setText(t("library.title"))
+        self.capture_btn.setText(t("library.capture_button"))
+        self.empty_hint.setText(t("library.empty_hint"))
+
 
 # ---------------------------------------------------------------------------
 # 2. Trang Chinh sua AI
@@ -120,14 +121,17 @@ class AIEditPage(QWidget):
         layout.setContentsMargins(20, 20, 20, 12)
         layout.setSpacing(14)
 
-        layout.addWidget(section_title("Chỉnh sửa bằng AI"))
+        self.title_label = section_title(t("ai.title"))
+        layout.addWidget(self.title_label)
 
         self.compare = CompareSlider()
         self.compare.setMinimumHeight(320)
         layout.addWidget(self.compare, stretch=1)
-        layout.addWidget(caption("Kéo thanh trắng để so sánh ảnh gốc / kết quả AI."))
+        self.compare_hint = caption(t("ai.compare_hint"))
+        layout.addWidget(self.compare_hint)
 
-        layout.addWidget(caption("Chọn phong cách"))
+        self.choose_style_label = caption(t("ai.choose_style"))
+        layout.addWidget(self.choose_style_label)
         carousel_scroll = QScrollArea()
         carousel_scroll.setWidgetResizable(True)
         carousel_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -155,7 +159,8 @@ class AIEditPage(QWidget):
         self._before_pixmap: Optional[QPixmap] = None
 
         intensity_row = QHBoxLayout()
-        intensity_row.addWidget(caption("Cường độ hiệu ứng"))
+        self.intensity_label = caption(t("ai.intensity"))
+        intensity_row.addWidget(self.intensity_label)
         self.intensity_value_label = QLabel("100%")
         intensity_row.addStretch()
         intensity_row.addWidget(self.intensity_value_label)
@@ -170,18 +175,18 @@ class AIEditPage(QWidget):
         layout.addWidget(self.intensity_slider)
 
         self.extra_edit = QTextEdit()
-        self.extra_edit.setPlaceholderText("Ghi chú thêm cho AI (tuỳ chọn)...")
+        self.extra_edit.setPlaceholderText(t("ai.extra_placeholder"))
         self.extra_edit.setFixedHeight(50)
         layout.addWidget(self.extra_edit)
 
         actions_row = QHBoxLayout()
-        self.process_btn = QPushButton("✨  Áp dụng AI")
+        self.process_btn = QPushButton(t("ai.process_button"))
         self.process_btn.setObjectName("PrimaryButton")
         self.process_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.process_btn.clicked.connect(self._emit_process)
         actions_row.addWidget(self.process_btn)
 
-        self.save_btn = QPushButton("💾  Lưu ảnh")
+        self.save_btn = QPushButton(t("ai.save_button"))
         self.save_btn.setObjectName("SecondaryButton")
         self.save_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.save_btn.setEnabled(False)
@@ -209,6 +214,18 @@ class AIEditPage(QWidget):
         self.compare.set_images(self._before_pixmap, after_pixmap)
         self.save_btn.setEnabled(True)
 
+    def retranslate(self):
+        self.title_label.setText(t("ai.title"))
+        self.compare_hint.setText(t("ai.compare_hint"))
+        self.choose_style_label.setText(t("ai.choose_style"))
+        self.intensity_label.setText(t("ai.intensity"))
+        self.extra_edit.setPlaceholderText(t("ai.extra_placeholder"))
+        self.process_btn.setText(t("ai.process_button"))
+        self.save_btn.setText(t("ai.save_button"))
+        for style in STYLES:
+            self.style_chips[style.key].set_label(style.label)
+        self.compare.update()
+
 
 # ---------------------------------------------------------------------------
 # 3. Trang Chinh tay
@@ -219,15 +236,24 @@ class ManualEditPage(QWidget):
     resetRequested = Signal()
     saveRequested = Signal()
 
+    SLIDER_SPECS = [
+        ("brightness", "manual.brightness"),
+        ("contrast", "manual.contrast"),
+        ("saturation", "manual.saturation"),
+        ("sharpness", "manual.sharpness"),
+    ]
+
     def __init__(self, parent=None):
         super().__init__(parent)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 20, 20, 12)
         layout.setSpacing(14)
 
-        layout.addWidget(section_title("Chỉnh tay"))
+        self.title_label = section_title(t("manual.title"))
+        layout.addWidget(self.title_label)
 
-        self.preview_label = QLabel("Chưa chọn ảnh")
+        self._has_image = False
+        self.preview_label = QLabel(t("manual.no_image"))
         self.preview_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.preview_label.setMinimumHeight(260)
         self.preview_label.setObjectName("Card")
@@ -248,14 +274,12 @@ class ManualEditPage(QWidget):
         layout.addLayout(rotate_row)
 
         self.sliders: dict[str, QSlider] = {}
-        for key, label in [
-            ("brightness", "Độ sáng"),
-            ("contrast", "Tương phản"),
-            ("saturation", "Bão hoà"),
-            ("sharpness", "Độ nét"),
-        ]:
+        self.slider_labels: dict[str, QLabel] = {}
+        for key, label_key in self.SLIDER_SPECS:
             row_label = QHBoxLayout()
-            row_label.addWidget(caption(label))
+            label_widget = caption(t(label_key))
+            self.slider_labels[key] = label_widget
+            row_label.addWidget(label_widget)
             row_label.addStretch()
             layout.addLayout(row_label)
 
@@ -267,13 +291,13 @@ class ManualEditPage(QWidget):
             self.sliders[key] = slider
 
         actions_row = QHBoxLayout()
-        reset_btn = QPushButton("Đặt lại")
-        reset_btn.setObjectName("SecondaryButton")
-        reset_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        reset_btn.clicked.connect(self._on_reset)
-        actions_row.addWidget(reset_btn)
+        self.reset_btn = QPushButton(t("manual.reset_button"))
+        self.reset_btn.setObjectName("SecondaryButton")
+        self.reset_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.reset_btn.clicked.connect(self._on_reset)
+        actions_row.addWidget(self.reset_btn)
 
-        self.save_btn = QPushButton("💾  Lưu ảnh")
+        self.save_btn = QPushButton(t("manual.save_button"))
         self.save_btn.setObjectName("PrimaryButton")
         self.save_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.save_btn.clicked.connect(self.saveRequested.emit)
@@ -299,14 +323,25 @@ class ManualEditPage(QWidget):
 
     def set_preview(self, pil_image: Optional[Image.Image]):
         if pil_image is None:
-            self.preview_label.setText("Chưa chọn ảnh")
+            self._has_image = False
+            self.preview_label.setText(t("manual.no_image"))
             self.preview_label.setPixmap(QPixmap())
             return
+        self._has_image = True
         pixmap = pil_to_pixmap(pil_image).scaled(
             self.preview_label.size(), Qt.AspectRatioMode.KeepAspectRatio,
             Qt.TransformationMode.SmoothTransformation
         )
         self.preview_label.setPixmap(pixmap)
+
+    def retranslate(self):
+        self.title_label.setText(t("manual.title"))
+        if not self._has_image:
+            self.preview_label.setText(t("manual.no_image"))
+        for key, label_key in self.SLIDER_SPECS:
+            self.slider_labels[key].setText(t(label_key))
+        self.reset_btn.setText(t("manual.reset_button"))
+        self.save_btn.setText(t("manual.save_button"))
 
 
 # ---------------------------------------------------------------------------
@@ -314,13 +349,15 @@ class ManualEditPage(QWidget):
 # ---------------------------------------------------------------------------
 class SettingsPage(QWidget):
     settingsSaved = Signal(dict)
+    languageChanged = Signal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
         outer = QVBoxLayout(self)
         outer.setContentsMargins(20, 20, 20, 12)
         outer.setSpacing(16)
-        outer.addWidget(section_title("Cài đặt"))
+        self.title_label = section_title(t("settings.title"))
+        outer.addWidget(self.title_label)
 
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -328,41 +365,54 @@ class SettingsPage(QWidget):
         outer.addWidget(scroll)
 
         inner = QWidget()
-        form = QFormLayout(inner)
-        form.setSpacing(14)
-        form.setLabelAlignment(Qt.AlignmentFlag.AlignLeft)
+        self.form = QFormLayout(inner)
+        self.form.setSpacing(14)
+        self.form.setLabelAlignment(Qt.AlignmentFlag.AlignLeft)
+
+        self.language_combo = QComboBox()
+        for code in SUPPORTED_LANGUAGES:
+            self.language_combo.addItem(LANGUAGE_NAMES[code], userData=code)
+        self.language_combo.currentIndexChanged.connect(self._on_language_changed)
+        self.language_row_label = self._add_row("settings.language_label", self.language_combo)
 
         self.api_key_edit = QLineEdit()
         self.api_key_edit.setEchoMode(QLineEdit.EchoMode.Password)
-        form.addRow("Gemini API key", self.api_key_edit)
+        self.api_key_row_label = self._add_row("settings.api_key_label", self.api_key_edit)
 
         self.model_edit = QLineEdit()
-        form.addRow("Model Gemini", self.model_edit)
+        self.model_row_label = self._add_row("settings.model_label", self.model_edit)
 
         self.digicam_edit, digicam_row = self._path_row(self._browse_digicam)
-        form.addRow("CameraControlCmd.exe", digicam_row)
+        self.digicam_row_label = self._add_row("settings.digicam_label", digicam_row)
 
         self.capture_folder_edit, capture_row = self._path_row(self._browse_capture)
-        form.addRow("Thư mục ảnh chụp", capture_row)
+        self.capture_row_label = self._add_row("settings.capture_folder_label", capture_row)
 
         self.output_folder_edit, output_row = self._path_row(self._browse_output)
-        form.addRow("Thư mục ảnh đã chỉnh", output_row)
+        self.output_row_label = self._add_row("settings.output_folder_label", output_row)
 
         scroll.setWidget(inner)
 
-        self.save_btn = QPushButton("💾  Lưu cài đặt")
+        self.save_btn = QPushButton(t("settings.save_button"))
         self.save_btn.setObjectName("PrimaryButton")
         self.save_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.save_btn.clicked.connect(self._emit_save)
         outer.addWidget(self.save_btn)
 
+        self._app_name = ""
+        self._app_version = ""
         self.version_label = caption("")
         outer.addWidget(self.version_label)
+
+    def _add_row(self, label_key: str, widget: QWidget) -> QLabel:
+        label = QLabel(t(label_key))
+        self.form.addRow(label, widget)
+        return label
 
     @staticmethod
     def _path_row(browse_slot):
         edit = QLineEdit()
-        browse_btn = QPushButton("Chọn...")
+        browse_btn = QPushButton(t("settings.browse_button"))
         browse_btn.setObjectName("SecondaryButton")
         browse_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         browse_btn.clicked.connect(lambda: browse_slot(edit))
@@ -371,22 +421,28 @@ class SettingsPage(QWidget):
         row_layout.setContentsMargins(0, 0, 0, 0)
         row_layout.addWidget(edit)
         row_layout.addWidget(browse_btn)
+        row_widget._browse_btn = browse_btn  # de retranslate sau
         return edit, row_widget
 
     def _browse_digicam(self, edit: QLineEdit):
-        path, _ = QFileDialog.getOpenFileName(self, "Chọn CameraControlCmd.exe", filter="*.exe")
+        path, _ = QFileDialog.getOpenFileName(self, t("settings.dialog_digicam_title"), filter="*.exe")
         if path:
             edit.setText(path)
 
     def _browse_capture(self, edit: QLineEdit):
-        path = QFileDialog.getExistingDirectory(self, "Chọn thư mục ảnh chụp")
+        path = QFileDialog.getExistingDirectory(self, t("settings.dialog_capture_title"))
         if path:
             edit.setText(path)
 
     def _browse_output(self, edit: QLineEdit):
-        path = QFileDialog.getExistingDirectory(self, "Chọn thư mục ảnh đã chỉnh")
+        path = QFileDialog.getExistingDirectory(self, t("settings.dialog_output_title"))
         if path:
             edit.setText(path)
+
+    def _on_language_changed(self, _index: int):
+        code = self.language_combo.currentData()
+        if code:
+            self.languageChanged.emit(code)
 
     def load_from_config(self, cfg: dict, app_name: str, app_version: str):
         self.api_key_edit.setText(cfg.get("gemini_api_key", ""))
@@ -394,7 +450,16 @@ class SettingsPage(QWidget):
         self.digicam_edit.setText(cfg.get("digicam_cmd_path", ""))
         self.capture_folder_edit.setText(cfg.get("capture_folder", ""))
         self.output_folder_edit.setText(cfg.get("output_folder", ""))
-        self.version_label.setText(f"{app_name} • phiên bản {app_version}")
+        self._app_name = app_name
+        self._app_version = app_version
+        self.version_label.setText(t("settings.version_label", app_name=app_name, app_version=app_version))
+
+        lang = cfg.get("language")
+        idx = self.language_combo.findData(lang)
+        if idx >= 0:
+            self.language_combo.blockSignals(True)
+            self.language_combo.setCurrentIndex(idx)
+            self.language_combo.blockSignals(False)
 
     def _emit_save(self):
         self.settingsSaved.emit({
@@ -403,4 +468,23 @@ class SettingsPage(QWidget):
             "digicam_cmd_path": self.digicam_edit.text().strip(),
             "capture_folder": self.capture_folder_edit.text().strip(),
             "output_folder": self.output_folder_edit.text().strip(),
+            "language": self.language_combo.currentData() or get_language(),
         })
+
+    def retranslate(self):
+        self.title_label.setText(t("settings.title"))
+        self.language_row_label.setText(t("settings.language_label"))
+        self.api_key_row_label.setText(t("settings.api_key_label"))
+        self.model_row_label.setText(t("settings.model_label"))
+        self.digicam_row_label.setText(t("settings.digicam_label"))
+        self.capture_row_label.setText(t("settings.capture_folder_label"))
+        self.output_row_label.setText(t("settings.output_folder_label"))
+        self.save_btn.setText(t("settings.save_button"))
+        if self._app_name:
+            self.version_label.setText(
+                t("settings.version_label", app_name=self._app_name, app_version=self._app_version)
+            )
+        for row in (self.digicam_edit.parentWidget(), self.capture_folder_edit.parentWidget(),
+                    self.output_folder_edit.parentWidget()):
+            if hasattr(row, "_browse_btn"):
+                row._browse_btn.setText(t("settings.browse_button"))

@@ -13,6 +13,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
+from i18n import t
+
 
 class DigiCamError(Exception):
     pass
@@ -30,10 +32,7 @@ class DigiCamController:
     def capture_photo(self, filename: Optional[str] = None, timeout: int = 20) -> Path:
         """Kich hoat may anh chup 1 tam va luu vao capture_folder. Tra ve duong dan file anh."""
         if not self.is_available():
-            raise DigiCamError(
-                f"Khong tim thay CameraControlCmd.exe tai: {self.cmd_exe_path}\n"
-                "Hay cai digiCamControl (digicamcontrol.com) va kiem tra lai duong dan trong Cai dat."
-            )
+            raise DigiCamError(t("error.digicam_not_found", path=self.cmd_exe_path))
 
         if not filename:
             filename = f"IMG_{datetime.now():%Y%m%d_%H%M%S}.jpg"
@@ -48,16 +47,12 @@ class DigiCamController:
                 timeout=timeout,
             )
         except subprocess.TimeoutExpired as exc:
-            raise DigiCamError("Het thoi gian cho may anh chup anh.") from exc
+            raise DigiCamError(t("error.digicam_timeout")) from exc
         except OSError as exc:
-            raise DigiCamError(f"Khong the chay digiCamControl: {exc}") from exc
+            raise DigiCamError(t("error.digicam_cannot_run", error=exc)) from exc
 
         if result.returncode != 0 or not target_path.exists():
             detail = (result.stderr or result.stdout or "").strip()
-            raise DigiCamError(
-                "Chup anh that bai. Kiem tra: may anh da bat & ket noi USB chua, "
-                "digiCamControl co dang mo san khong (phai tat cua so chinh truoc).\n"
-                f"Chi tiet: {detail}"
-            )
+            raise DigiCamError(t("error.digicam_capture_failed", detail=detail))
 
         return target_path

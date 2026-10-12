@@ -14,6 +14,8 @@
 
 [**⬇️ Tải bản cài đặt mới nhất**](../../releases/latest) · [Báo lỗi](../../issues) · [Giới thiệu](#-giới-thiệu)
 
+**🇻🇳 Tiếng Việt** | [🇬🇧 English](README.en.md)
+
 </div>
 
 ---
