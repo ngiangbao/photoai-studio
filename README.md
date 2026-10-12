@@ -126,7 +126,7 @@ Mỗi khi tag dạng `v*` được đẩy lên GitHub, workflow **Build & Releas
 
 ```bash
 pip install pyinstaller
-pyinstaller --name "PhotoAI Studio" --windowed --onedir --icon assets/icon.ico main.py
+pyinstaller --name "PhotoAI Studio" --windowed --onedir --icon assets/icon.ico --collect-all PySide6 main.py
 # Sau đó mở installer.iss bằng Inno Setup và Build
 ```
 
