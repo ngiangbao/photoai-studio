@@ -33,9 +33,6 @@ song ngữ **Tiếng Việt / English**, chuyển đổi ngay trong app không c
 > ⚠️ **Đang trong giai đoạn `alpha-003`** — các tính năng cốt lõi đã hoạt động nhưng chưa được
 > kiểm thử rộng rãi trên nhiều dòng máy ảnh. Phản hồi & issue luôn được chào đón.
 >
-> Từ `alpha-003`, một số tính năng được tham khảo từ ứng dụng chỉnh ảnh di động **醒图
-> (XingTu/retouchpics.com)**: công cụ 1-chạm, xoá vật thể bằng AI, preset tuỳ chỉnh và
-> xử lý hàng loạt — xem chi tiết bên dưới.
 
 ## ✨ Tính năng
 
