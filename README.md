@@ -27,7 +27,8 @@
 mong muốn, để AI tự động chỉnh sửa theo đúng phong cách đó — thay vì chỉnh tay từng ảnh trên
 Lightroom/Photoshop. Giao diện lấy cảm hứng từ các app chỉnh ảnh di động phổ biến (kiểu
 Xingtu/Meitu): thanh điều hướng dưới, thẻ chọn phong cách dạng carousel, thanh kéo so sánh
-trước/sau, và các nút/vùng chạm đủ lớn để dùng tốt trên cả màn hình cảm ứng.
+trước/sau, và các nút/vùng chạm đủ lớn để dùng tốt trên cả màn hình cảm ứng. Ứng dụng hỗ trợ
+song ngữ **Tiếng Việt / English**, chuyển đổi ngay trong app không cần khởi động lại.
 
 > ⚠️ **Đang trong giai đoạn `alpha-002`** — các tính năng cốt lõi đã hoạt động nhưng chưa được
 > kiểm thử rộng rãi trên nhiều dòng máy ảnh. Phản hồi & issue luôn được chào đón.
@@ -53,7 +54,7 @@ trước/sau, và các nút/vùng chạm đủ lớn để dùng tốt trên c�
 
 **Chỉnh tay** 🎚️ — độ sáng, tương phản, bão hoà, độ nét (xem trước trực tiếp) + xoay ảnh 90°, không cần AI.
 
-**Cài đặt** ⚙️ — đổi model AI, đường dẫn digiCamControl, thư mục lưu ảnh.
+**Cài đặt** ⚙️ — đổi model AI, đường dẫn digiCamControl, thư mục lưu ảnh, và **ngôn ngữ** (Việt/Anh).
 
 ## 🏗️ Kiến trúc
 
@@ -64,10 +65,11 @@ photoai_app/
 ├── requirements.txt
 ├── installer.iss            # Script Inno Setup (tự tải & cài digiCamControl)
 ├── assets/icon.ico           # Icon ứng dụng
+├── i18n.py                   # Hệ thống dịch song ngữ Việt/Anh nhẹ
 ├── camera/
 │   └── digicam.py            # Wrapper gọi digiCamControl (CameraControlCmd.exe)
 ├── ai/
-│   ├── styles.py              # Định nghĩa 5 phong cách + prompt cho Gemini
+│   ├── styles.py              # Định nghĩa 5 phong cách + prompt song ngữ cho Gemini
 │   ├── gemini_editor.py       # Gọi Gemini API chỉnh sửa ảnh
 │   └── manual_edit.py         # Chỉnh tay (sáng/tương phản/bão hoà/nét/xoay) + blend AI
 └── ui/
@@ -119,6 +121,8 @@ python main.py
 3. Tab **Chỉnh AI** → chọn phong cách trên carousel → chỉnh cường độ nếu muốn → **"Áp dụng AI"**
    → kéo thanh so sánh để xem trước/sau → **"Lưu ảnh"**.
 4. Hoặc tab **Chỉnh tay** → chỉnh sáng/tương phản/bão hoà/nét bằng thanh trượt → **"Lưu ảnh"**.
+5. Đổi ngôn ngữ bất cứ lúc nào ở tab **Cài đặt** → **Ngôn ngữ** (áp dụng ngay, không cần khởi
+   động lại).
 
 ## 📦 Build installer từ mã nguồn
 
@@ -132,12 +136,20 @@ pyinstaller --name "PhotoAI Studio" --windowed --onedir --icon assets/icon.ico m
 # Sau đó mở installer.iss bằng Inno Setup và Build
 ```
 
+## 📱 Bản Android
+
+Đang triển khai tại [`android/`](android/) — dùng Kotlin + Jetpack Compose, cùng 5 phong cách
+và logic gọi Gemini với bản Windows, nhưng chụp bằng camera của điện thoại (qua CameraX) thay
+vì digiCamControl (vốn chỉ chạy trên Windows). Chi tiết kiến trúc và hướng dẫn chạy thử ở
+[`android/README.md`](android/README.md).
+
 ## 🗺️ Roadmap
 
 - [ ] Hỗ trợ tethering trực tiếp qua SDK riêng (Canon EDSDK, Nikon SDK) ngoài digiCamControl
 - [ ] Xử lý hàng loạt nhiều ảnh cùng lúc (batch processing)
 - [ ] Tuỳ chỉnh / lưu phong cách của riêng người dùng
 - [ ] Bộ icon SVG riêng thay cho emoji, hỗ trợ dark/light theme switch
+- [ ] Bản Android: nhập ảnh từ thư viện, tethering USB-OTG, bản release ký số (xem roadmap riêng trong `android/README.md`)
 
 ## 🤝 Đóng góp
 
