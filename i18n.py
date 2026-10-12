@@ -29,6 +29,8 @@ STRINGS = {
         "vi": "Chưa có ảnh nào. Cắm máy ảnh qua USB rồi bấm \"Chụp ảnh mới\".",
         "en": "No photos yet. Connect your camera via USB and tap \"New Capture\".",
     },
+    "library.multi_select_button": {"vi": "☑️  Chọn nhiều", "en": "☑️  Select Multiple"},
+    "library.batch_button": {"vi": "🧵  Xử lý hàng loạt ({count})", "en": "🧵  Batch Process ({count})"},
 
     # ---- Trang Chinh AI ----
     "ai.title": {"vi": "Chỉnh sửa bằng AI", "en": "AI Edit"},
@@ -44,6 +46,10 @@ STRINGS = {
     },
     "ai.process_button": {"vi": "✨  Áp dụng AI", "en": "✨  Apply AI"},
     "ai.save_button": {"vi": "💾  Lưu ảnh", "en": "💾  Save Photo"},
+    "ai.save_preset_button": {"vi": "⭐  Lưu làm preset", "en": "⭐  Save as Preset"},
+    "ai.save_preset_dialog_title": {"vi": "Lưu preset mới", "en": "Save new preset"},
+    "ai.save_preset_dialog_label": {"vi": "Đặt tên cho preset này:", "en": "Name this preset:"},
+    "ai.preset_delete_action": {"vi": "🗑️  Xoá preset này", "en": "🗑️  Delete this preset"},
     "compare.no_image": {"vi": "Chưa có ảnh", "en": "No image yet"},
     "compare.after_label": {"vi": "AI", "en": "AI"},
     "compare.before_label": {"vi": "Gốc", "en": "Original"},
@@ -54,6 +60,16 @@ STRINGS = {
     "style.landscape": {"vi": "Phong cảnh", "en": "Landscape"},
     "style.people": {"vi": "Chụp người / đời thường", "en": "People / Candid"},
     "style.graduation": {"vi": "Chụp kỷ yếu", "en": "Graduation"},
+    "style.cleanup": {"vi": "Xoá vật thể", "en": "Remove Object"},
+
+    # ---- Xu ly hang loat (batch) ----
+    "batch.progress_title": {"vi": "Đang xử lý hàng loạt", "en": "Batch processing"},
+    "batch.progress_label": {"vi": "Đang xử lý ảnh {current}/{total}...", "en": "Processing photo {current}/{total}..."},
+    "batch.done_title": {"vi": "Hoàn tất", "en": "Done"},
+    "batch.done_message": {
+        "vi": "Đã xử lý xong {success} ảnh thành công, {failed} ảnh lỗi. Ảnh đã lưu vào thư mục ảnh đã chỉnh.",
+        "en": "Finished: {success} photos succeeded, {failed} failed. Results were saved to the output folder.",
+    },
 
     # ---- Trang Chinh tay ----
     "manual.title": {"vi": "Chỉnh tay", "en": "Manual Edit"},
@@ -64,6 +80,8 @@ STRINGS = {
     "manual.sharpness": {"vi": "Độ nét", "en": "Sharpness"},
     "manual.reset_button": {"vi": "Đặt lại", "en": "Reset"},
     "manual.save_button": {"vi": "💾  Lưu ảnh", "en": "💾  Save Photo"},
+    "manual.white_balance_button": {"vi": "🌈  Cân bằng trắng", "en": "🌈  White Balance"},
+    "manual.auto_adjust_button": {"vi": "✨  Tự động chỉnh", "en": "✨  Smart Auto"},
 
     # ---- Trang Cai dat ----
     "settings.title": {"vi": "Cài đặt", "en": "Settings"},

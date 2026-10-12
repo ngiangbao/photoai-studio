@@ -4,7 +4,7 @@
 
 **Tether your camera over USB and auto-edit photos with AI — a mobile-style photo-editing UI, touch-friendly**
 
-![Version](https://img.shields.io/badge/version-alpha--002-orange)
+![Version](https://img.shields.io/badge/version-alpha--003-orange)
 ![Platform](https://img.shields.io/badge/platform-Windows-0078D6?logo=windows)
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white)
 ![UI](https://img.shields.io/badge/UI-PySide6-41CD52?logo=qt&logoColor=white)
@@ -29,16 +29,21 @@ photo in Lightroom/Photoshop. The UI is inspired by popular mobile photo-editing
 style of Xingtu/Meitu): a bottom navigation bar, a carousel of style chips, a before/after
 compare slider, and buttons/tap targets large enough to work well on touchscreens too.
 
-> ⚠️ **Currently in `alpha-002`** — the core features work but haven't been tested widely
+> ⚠️ **Currently in `alpha-003`** — the core features work but haven't been tested widely
 > across camera models yet. Feedback and issues are always welcome.
+>
+> Starting with `alpha-003`, several features are inspired by the mobile photo-editing app
+> **醒图 (XingTu/retouchpics.com)**: one-tap tools, AI object removal, custom presets, and
+> batch processing — details below.
 
 ## ✨ Features
 
-**Library** 🖼️ — newly captured photos appear automatically; pick one with a single tap.
+**Library** 🖼️ — newly captured photos appear automatically; pick one with a single tap. Switch
+to **multi-select mode** to pick several photos at once and batch-process them.
 
 **AI Edit** ✨
 - 📷 USB tethered capture via [digiCamControl](https://www.digicamcontrol.com) (most Canon/Nikon/Sony/Pentax cameras)
-- 🎨 A carousel of 5 built-in styles:
+- 🎨 A carousel of 6 built-in styles:
 
   | Style | Description |
   |---|---|
@@ -47,11 +52,18 @@ compare slider, and buttons/tap targets large enough to work well on touchscreen
   | Landscape | Increased dynamic range, sky and detail stand out |
   | People / Candid | Consistent skin tones, even lighting for multiple people |
   | Graduation | Bright, consistent tones, smiles stand out |
+  | 🧹 Remove Object | Removes distracting people/objects from the background with natural AI inpainting |
+- ⭐ **Custom presets** — save a style + intensity + note combo as a named preset that shows up
+  in the carousel for quick reuse (right-click / long-press to delete)
+- 🧵 **Batch processing** — select multiple photos in the Library and apply one style/preset to
+  all of them, with a progress bar and automatic saving
 - 🎚️ An **effect intensity** slider (0–100%) to blend the AI result with the original
 - 🖱️ A **before/after compare slider** right on the photo (drag to reveal the AI result)
 - 🤖 Generative AI editing via the [Gemini API](https://ai.google.dev) (`gemini-2.5-flash-image`), with an optional custom note
 
-**Manual Edit** 🎚️ — brightness, contrast, saturation, sharpness (live preview) + 90° rotation, no AI needed.
+**Manual Edit** 🎚️ — brightness, contrast, saturation, sharpness (live preview) + 90° rotation,
+plus 2 **local one-tap tools** (no AI needed, instant): 🌈 White Balance (gray-world) and
+✨ Smart Auto (brightness/color/contrast).
 
 **Settings** ⚙️ — switch AI model, digiCamControl path, output folders, and app language (Vietnamese/English).
 
@@ -68,9 +80,10 @@ photoai_app/
 ├── camera/
 │   └── digicam.py            # Wrapper around digiCamControl (CameraControlCmd.exe)
 ├── ai/
-│   ├── styles.py              # 5 styles + bilingual prompts for Gemini
+│   ├── styles.py              # 6 styles + bilingual prompts for Gemini
 │   ├── gemini_editor.py       # Calls the Gemini API to edit photos
-│   └── manual_edit.py         # Manual edit (brightness/contrast/saturation/sharpness/rotate) + AI blend
+│   ├── manual_edit.py         # Manual edit (brightness/contrast/saturation/sharpness/rotate) + AI blend
+│   └── one_tap.py             # Local one-tap tools: white balance, smart auto adjust (no AI needed)
 └── ui/
     ├── theme.py                # Color palette & QSS (dark theme, pink/purple accent)
     ├── widgets.py               # Bottom nav bar, style chips, compare slider
@@ -119,9 +132,14 @@ python main.py
 2. **Library** tab → **"New Capture"** → select the photo you just took.
 3. **AI Edit** tab → pick a style from the carousel → adjust intensity if you like →
    **"Apply AI"** → drag the compare slider to see before/after → **"Save Photo"**.
-4. Or the **Manual** tab → adjust brightness/contrast/saturation/sharpness with the sliders →
-   **"Save Photo"**.
-5. Change the app's language anytime in **Settings** → **Language** (takes effect immediately,
+4. Or the **Manual** tab → tap **"White Balance"** / **"Smart Auto"** for a quick fix, then
+   fine-tune with the sliders → **"Save Photo"**.
+5. Want to reuse a favorite combo? Pick a style + intensity + note on the **AI Edit** tab →
+   **"Save as Preset"** → give it a name. It shows up in the carousel; right-click to delete it.
+6. Got several photos that need the same style? On the **Library** tab, tap **"Select
+   Multiple"** → check the photos → **"Batch Process"** (uses the style/preset currently
+   selected on the AI Edit tab).
+7. Change the app's language anytime in **Settings** → **Language** (takes effect immediately,
    no restart needed).
 
 ## 📦 Build the installer from source
@@ -146,8 +164,11 @@ camera (via CameraX) instead of digiCamControl (which only runs on Windows). See
 ## 🗺️ Roadmap
 
 - [ ] Direct tethering via vendor SDKs (Canon EDSDK, Nikon SDK) in addition to digiCamControl
-- [ ] Batch processing of multiple photos at once
-- [ ] Custom/saveable user-defined styles
+- [x] Batch processing of multiple photos at once
+- [x] Custom/saveable user-defined styles (presets)
+- [ ] Landmark-based face reshape/lift — needs a face-landmark library; face effects currently
+      go through generative AI (the Portrait style) rather than a precise mesh warp
+- [ ] A stackable library of 1,200+ filters, matching the original 醒图 app
 - [ ] A dedicated SVG icon set instead of emoji, with dark/light theme switching
 - [ ] Android: import from gallery, USB-OTG tethering, signed release builds (see its own roadmap in `android/README.md`)
 

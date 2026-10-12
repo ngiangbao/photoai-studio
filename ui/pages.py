@@ -10,7 +10,7 @@ from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QListWidget, QListWidgetItem, QScrollArea, QFrame, QSlider, QLineEdit,
-    QFormLayout, QFileDialog, QTextEdit, QComboBox
+    QFormLayout, QFileDialog, QTextEdit, QComboBox, QAbstractItemView, QMenu
 )
 
 from ai.styles import STYLES
@@ -26,6 +26,7 @@ STYLE_EMOJI = {
     "landscape": "🏞️",
     "people": "👥",
     "graduation": "🎓",
+    "cleanup": "🧹",
 }
 
 
@@ -48,6 +49,7 @@ def caption(text: str) -> QLabel:
 class LibraryPage(QWidget):
     captureRequested = Signal()
     photoSelected = Signal(str)
+    batchRequested = Signal(list)  # danh sach duong dan anh da chon
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -67,19 +69,36 @@ class LibraryPage(QWidget):
         self.capture_btn.clicked.connect(self.captureRequested.emit)
         layout.addWidget(self.capture_btn)
 
+        selection_row = QHBoxLayout()
+        self.multi_select_btn = QPushButton(t("library.multi_select_button"))
+        self.multi_select_btn.setObjectName("SecondaryButton")
+        self.multi_select_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.multi_select_btn.setCheckable(True)
+        self.multi_select_btn.toggled.connect(self._on_multi_select_toggled)
+        selection_row.addWidget(self.multi_select_btn)
+
+        self.batch_btn = QPushButton()
+        self.batch_btn.setObjectName("SecondaryButton")
+        self.batch_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.batch_btn.setEnabled(False)
+        self.batch_btn.setVisible(False)
+        self.batch_btn.clicked.connect(self._emit_batch)
+        selection_row.addWidget(self.batch_btn)
+        layout.addLayout(selection_row)
+
         self.photo_list = QListWidget()
         self.photo_list.setViewMode(QListWidget.ViewMode.IconMode)
         self.photo_list.setIconSize(THUMB_SIZE)
         self.photo_list.setResizeMode(QListWidget.ResizeMode.Adjust)
         self.photo_list.setSpacing(10)
         self.photo_list.setMovement(QListWidget.Movement.Static)
-        self.photo_list.itemClicked.connect(
-            lambda item: self.photoSelected.emit(item.data(Qt.ItemDataRole.UserRole))
-        )
+        self.photo_list.itemClicked.connect(self._on_item_clicked)
+        self.photo_list.itemSelectionChanged.connect(self._update_batch_button)
         layout.addWidget(self.photo_list)
 
         self.empty_hint = caption(t("library.empty_hint"))
         layout.addWidget(self.empty_hint)
+        self._update_batch_button()
 
     def refresh(self, folder: str):
         path = Path(folder)
@@ -103,10 +122,37 @@ class LibraryPage(QWidget):
             self.photo_list.insertItem(0, item)
         self.empty_hint.setVisible(self.photo_list.count() == 0)
 
+    def _on_multi_select_toggled(self, checked: bool):
+        if checked:
+            self.photo_list.setSelectionMode(QAbstractItemView.SelectionMode.MultiSelection)
+        else:
+            self.photo_list.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+            self.photo_list.clearSelection()
+        self.batch_btn.setVisible(checked)
+        self._update_batch_button()
+
+    def _on_item_clicked(self, item: QListWidgetItem):
+        if self.multi_select_btn.isChecked():
+            self._update_batch_button()
+            return
+        self.photoSelected.emit(item.data(Qt.ItemDataRole.UserRole))
+
+    def _update_batch_button(self):
+        count = len(self.photo_list.selectedItems())
+        self.batch_btn.setEnabled(count > 0)
+        self.batch_btn.setText(t("library.batch_button", count=count))
+
+    def _emit_batch(self):
+        paths = [item.data(Qt.ItemDataRole.UserRole) for item in self.photo_list.selectedItems()]
+        if paths:
+            self.batchRequested.emit(paths)
+
     def retranslate(self):
         self.title_label.setText(t("library.title"))
         self.capture_btn.setText(t("library.capture_button"))
         self.empty_hint.setText(t("library.empty_hint"))
+        self.multi_select_btn.setText(t("library.multi_select_button"))
+        self._update_batch_button()
 
 
 # ---------------------------------------------------------------------------
@@ -114,6 +160,8 @@ class LibraryPage(QWidget):
 # ---------------------------------------------------------------------------
 class AIEditPage(QWidget):
     processRequested = Signal(str, float, str)  # style_key, intensity(0..1), extra_note
+    presetSaveRequested = Signal()
+    presetDeleteRequested = Signal(int)  # chi so preset trong danh sach custom_presets
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -149,6 +197,9 @@ class AIEditPage(QWidget):
             chip.clicked.connect(lambda _c=False, k=style.key: self._select_style(k))
             carousel_layout.addWidget(chip)
             self.style_chips[style.key] = chip
+        self._carousel_layout = carousel_layout
+        self.preset_chips: dict[int, StyleChip] = {}
+        self._presets: list[dict] = []
         carousel_layout.addStretch()
         carousel_scroll.setWidget(carousel_inner)
         layout.addWidget(carousel_scroll)
@@ -193,16 +244,65 @@ class AIEditPage(QWidget):
         actions_row.addWidget(self.save_btn)
         layout.addLayout(actions_row)
 
+        self.save_preset_btn = QPushButton(t("ai.save_preset_button"))
+        self.save_preset_btn.setObjectName("SecondaryButton")
+        self.save_preset_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.save_preset_btn.clicked.connect(self.presetSaveRequested.emit)
+        layout.addWidget(self.save_preset_btn)
+
     def _select_style(self, key: str):
         self._selected_style = key
         for k, chip in self.style_chips.items():
             chip.setChecked(k == key)
+        for chip in self.preset_chips.values():
+            chip.setChecked(False)
 
     def _emit_process(self):
         if self._selected_style is None:
             return
         intensity = self.intensity_slider.value() / 100.0
         self.processRequested.emit(self._selected_style, intensity, self.extra_edit.toPlainText())
+
+    def current_settings(self):
+        """Tra ve (style_key, intensity 0..1, extra_note) hien dang chon - dung de luu preset
+        hoac xu ly hang loat."""
+        return self._selected_style, self.intensity_slider.value() / 100.0, self.extra_edit.toPlainText()
+
+    def set_presets(self, presets: list[dict]):
+        """Ve lai danh sach chip preset tuy chinh (sau cac style dung san) tu config."""
+        for chip in list(self.preset_chips.values()):
+            self._carousel_layout.removeWidget(chip)
+            chip.deleteLater()
+        self.preset_chips.clear()
+        self._presets = presets
+
+        insert_pos = self._carousel_layout.count() - 1  # ngay truoc stretch cuoi carousel
+        for idx, preset in enumerate(presets):
+            chip = StyleChip(f"preset:{idx}", preset.get("name", "?"), "⭐")
+            chip.clicked.connect(lambda _c=False, i=idx: self._select_preset(i))
+            chip.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+            chip.customContextMenuRequested.connect(lambda _pos, i=idx, c=chip: self._show_preset_menu(c, i))
+            self._carousel_layout.insertWidget(insert_pos, chip)
+            insert_pos += 1
+            self.preset_chips[idx] = chip
+
+    def _select_preset(self, idx: int):
+        if idx >= len(self._presets):
+            return
+        preset = self._presets[idx]
+        self._selected_style = preset.get("base_style")
+        self.intensity_slider.setValue(round(preset.get("intensity", 1.0) * 100))
+        self.extra_edit.setPlainText(preset.get("extra_note", ""))
+        for chip in self.style_chips.values():
+            chip.setChecked(False)
+        for i, chip in self.preset_chips.items():
+            chip.setChecked(i == idx)
+
+    def _show_preset_menu(self, chip: StyleChip, idx: int):
+        menu = QMenu(self)
+        delete_action = menu.addAction(t("ai.preset_delete_action"))
+        delete_action.triggered.connect(lambda: self.presetDeleteRequested.emit(idx))
+        menu.exec(chip.mapToGlobal(chip.rect().center()))
 
     def set_before_image(self, pil_image: Optional[Image.Image]):
         self._before_pixmap = pil_to_pixmap(pil_image) if pil_image is not None else None
@@ -222,6 +322,7 @@ class AIEditPage(QWidget):
         self.extra_edit.setPlaceholderText(t("ai.extra_placeholder"))
         self.process_btn.setText(t("ai.process_button"))
         self.save_btn.setText(t("ai.save_button"))
+        self.save_preset_btn.setText(t("ai.save_preset_button"))
         for style in STYLES:
             self.style_chips[style.key].set_label(style.label)
         self.compare.update()
@@ -235,6 +336,8 @@ class ManualEditPage(QWidget):
     rotateRequested = Signal(int)        # +-90
     resetRequested = Signal()
     saveRequested = Signal()
+    whiteBalanceRequested = Signal()
+    autoAdjustRequested = Signal()
 
     SLIDER_SPECS = [
         ("brightness", "manual.brightness"),
@@ -272,6 +375,20 @@ class ManualEditPage(QWidget):
         rotate_row.addWidget(rotate_right)
         rotate_row.addStretch()
         layout.addLayout(rotate_row)
+
+        # Cong cu 1 cham (xu ly cuc bo, khong can AI): can bang trang, tu dong chinh
+        one_tap_row = QHBoxLayout()
+        self.white_balance_btn = QPushButton(t("manual.white_balance_button"))
+        self.white_balance_btn.setObjectName("SecondaryButton")
+        self.white_balance_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.white_balance_btn.clicked.connect(self.whiteBalanceRequested.emit)
+        self.auto_adjust_btn = QPushButton(t("manual.auto_adjust_button"))
+        self.auto_adjust_btn.setObjectName("SecondaryButton")
+        self.auto_adjust_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.auto_adjust_btn.clicked.connect(self.autoAdjustRequested.emit)
+        one_tap_row.addWidget(self.white_balance_btn)
+        one_tap_row.addWidget(self.auto_adjust_btn)
+        layout.addLayout(one_tap_row)
 
         self.sliders: dict[str, QSlider] = {}
         self.slider_labels: dict[str, QLabel] = {}
@@ -342,6 +459,8 @@ class ManualEditPage(QWidget):
             self.slider_labels[key].setText(t(label_key))
         self.reset_btn.setText(t("manual.reset_button"))
         self.save_btn.setText(t("manual.save_button"))
+        self.white_balance_btn.setText(t("manual.white_balance_button"))
+        self.auto_adjust_btn.setText(t("manual.auto_adjust_button"))
 
 
 # ---------------------------------------------------------------------------

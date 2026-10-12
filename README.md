@@ -4,7 +4,7 @@
 
 **Chụp ảnh tethering từ máy ảnh qua USB và tự động chỉnh sửa bằng AI — giao diện kiểu app chỉnh ảnh di động, thân thiện cảm ứng**
 
-![Version](https://img.shields.io/badge/version-alpha--002-orange)
+![Version](https://img.shields.io/badge/version-alpha--003-orange)
 ![Platform](https://img.shields.io/badge/platform-Windows-0078D6?logo=windows)
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white)
 ![UI](https://img.shields.io/badge/UI-PySide6-41CD52?logo=qt&logoColor=white)
@@ -30,16 +30,21 @@ Xingtu/Meitu): thanh điều hướng dưới, thẻ chọn phong cách dạng c
 trước/sau, và các nút/vùng chạm đủ lớn để dùng tốt trên cả màn hình cảm ứng. Ứng dụng hỗ trợ
 song ngữ **Tiếng Việt / English**, chuyển đổi ngay trong app không cần khởi động lại.
 
-> ⚠️ **Đang trong giai đoạn `alpha-002`** — các tính năng cốt lõi đã hoạt động nhưng chưa được
+> ⚠️ **Đang trong giai đoạn `alpha-003`** — các tính năng cốt lõi đã hoạt động nhưng chưa được
 > kiểm thử rộng rãi trên nhiều dòng máy ảnh. Phản hồi & issue luôn được chào đón.
+>
+> Từ `alpha-003`, một số tính năng được tham khảo từ ứng dụng chỉnh ảnh di động **醒图
+> (XingTu/retouchpics.com)**: công cụ 1-chạm, xoá vật thể bằng AI, preset tuỳ chỉnh và
+> xử lý hàng loạt — xem chi tiết bên dưới.
 
 ## ✨ Tính năng
 
-**Thư viện** 🖼️ — ảnh mới chụp tự động xuất hiện, chọn nhanh bằng một cú chạm.
+**Thư viện** 🖼️ — ảnh mới chụp tự động xuất hiện, chọn nhanh bằng một cú chạm. Có thể chuyển
+sang **chế độ chọn nhiều** để chọn nhiều ảnh cùng lúc và xử lý hàng loạt.
 
 **Chỉnh sửa AI** ✨
 - 📷 Chụp tethering qua USB qua [digiCamControl](https://www.digicamcontrol.com) (đa số máy ảnh Canon/Nikon/Sony/Pentax)
-- 🎨 Carousel chọn 1 trong 5 phong cách dựng sẵn:
+- 🎨 Carousel chọn 1 trong 6 phong cách dựng sẵn:
 
   | Phong cách | Mô tả |
   |---|---|
@@ -48,11 +53,18 @@ song ngữ **Tiếng Việt / English**, chuyển đổi ngay trong app không c
   | Phong cảnh | Tăng dynamic range, làm nổi bật bầu trời & chi tiết |
   | Chụp người / đời thường | Màu da chuẩn, ánh sáng đều cho nhiều người |
   | Chụp kỷ yếu | Tông màu tươi sáng, đồng nhất, nổi bật nụ cười |
+  | 🧹 Xoá vật thể | Xoá người/vật gây xao nhãng ở hậu cảnh, tự phục hồi (inpaint) tự nhiên |
+- ⭐ **Preset tuỳ chỉnh** — lưu lại tổ hợp phong cách + cường độ + ghi chú làm preset riêng có
+  tên, hiện trong carousel để dùng lại nhanh (nhấn giữ/chuột phải để xoá)
+- 🧵 **Xử lý hàng loạt** — chọn nhiều ảnh ở Thư viện rồi áp 1 phong cách/preset cho tất cả, tự
+  lưu kết quả, có thanh tiến trình
 - 🎚️ Thanh **cường độ hiệu ứng** (0–100%) để pha trộn ảnh AI với ảnh gốc
 - 🖱️ **Thanh kéo so sánh** trước/sau ngay trên ảnh (kéo để lộ dần kết quả AI)
 - 🤖 Chỉnh sửa bằng AI tạo sinh qua [Gemini API](https://ai.google.dev) (`gemini-2.5-flash-image`), có thể thêm ghi chú tuỳ chỉnh
 
-**Chỉnh tay** 🎚️ — độ sáng, tương phản, bão hoà, độ nét (xem trước trực tiếp) + xoay ảnh 90°, không cần AI.
+**Chỉnh tay** 🎚️ — độ sáng, tương phản, bão hoà, độ nét (xem trước trực tiếp) + xoay ảnh 90°,
+cộng 2 **công cụ 1-chạm xử lý cục bộ** (không cần AI, chạy ngay lập tức): 🌈 Cân bằng trắng
+(gray-world) và ✨ Tự động chỉnh sáng/màu/tương phản.
 
 **Cài đặt** ⚙️ — đổi model AI, đường dẫn digiCamControl, thư mục lưu ảnh, và **ngôn ngữ** (Việt/Anh).
 
@@ -69,9 +81,10 @@ photoai_app/
 ├── camera/
 │   └── digicam.py            # Wrapper gọi digiCamControl (CameraControlCmd.exe)
 ├── ai/
-│   ├── styles.py              # Định nghĩa 5 phong cách + prompt song ngữ cho Gemini
+│   ├── styles.py              # Định nghĩa 6 phong cách + prompt song ngữ cho Gemini
 │   ├── gemini_editor.py       # Gọi Gemini API chỉnh sửa ảnh
-│   └── manual_edit.py         # Chỉnh tay (sáng/tương phản/bão hoà/nét/xoay) + blend AI
+│   ├── manual_edit.py         # Chỉnh tay (sáng/tương phản/bão hoà/nét/xoay) + blend AI
+│   └── one_tap.py             # Công cụ 1-chạm cục bộ: cân bằng trắng, tự động chỉnh (không cần AI)
 └── ui/
     ├── theme.py                # Bảng màu & QSS (giao diện tối, điểm nhấn hồng/tím)
     ├── widgets.py               # Thanh điều hướng dưới, chip phong cách, compare slider
@@ -120,8 +133,13 @@ python main.py
 2. Tab **Thư viện** → **"Chụp ảnh mới"** → chọn ảnh vừa chụp.
 3. Tab **Chỉnh AI** → chọn phong cách trên carousel → chỉnh cường độ nếu muốn → **"Áp dụng AI"**
    → kéo thanh so sánh để xem trước/sau → **"Lưu ảnh"**.
-4. Hoặc tab **Chỉnh tay** → chỉnh sáng/tương phản/bão hoà/nét bằng thanh trượt → **"Lưu ảnh"**.
-5. Đổi ngôn ngữ bất cứ lúc nào ở tab **Cài đặt** → **Ngôn ngữ** (áp dụng ngay, không cần khởi
+4. Hoặc tab **Chỉnh tay** → bấm **"Cân bằng trắng"** / **"Tự động chỉnh"** để sửa nhanh, rồi
+   tinh chỉnh thêm bằng thanh trượt → **"Lưu ảnh"**.
+5. Muốn dùng lại một tổ hợp phong cách quen thuộc? Chọn phong cách + cường độ + ghi chú ở tab
+   **Chỉnh AI** → **"Lưu làm preset"** → đặt tên. Preset xuất hiện trong carousel, chuột phải để xoá.
+6. Có nhiều ảnh cùng cần 1 phong cách? Ở tab **Thư viện**, bấm **"Chọn nhiều"** → tick các ảnh →
+   **"Xử lý hàng loạt"** (dùng phong cách/preset đang chọn ở tab Chỉnh AI).
+7. Đổi ngôn ngữ bất cứ lúc nào ở tab **Cài đặt** → **Ngôn ngữ** (áp dụng ngay, không cần khởi
    động lại).
 
 ## 📦 Build installer từ mã nguồn
@@ -146,8 +164,12 @@ vì digiCamControl (vốn chỉ chạy trên Windows). Chi tiết kiến trúc v
 ## 🗺️ Roadmap
 
 - [ ] Hỗ trợ tethering trực tiếp qua SDK riêng (Canon EDSDK, Nikon SDK) ngoài digiCamControl
-- [ ] Xử lý hàng loạt nhiều ảnh cùng lúc (batch processing)
-- [ ] Tuỳ chỉnh / lưu phong cách của riêng người dùng
+- [x] Xử lý hàng loạt nhiều ảnh cùng lúc (batch processing)
+- [x] Tuỳ chỉnh / lưu phong cách của riêng người dùng (preset)
+- [ ] Chỉnh dáng mặt (face reshape/lift) bằng landmark — cần thêm thư viện nhận diện khuôn mặt,
+      hiện tại các hiệu ứng khuôn mặt vẫn đi qua AI tạo sinh (phong cách Chân dung) thay vì warp
+      mesh chính xác theo điểm mốc
+- [ ] Thư viện 1.200+ bộ lọc có thể xếp chồng (filter stack) như bản 醒图 gốc
 - [ ] Bộ icon SVG riêng thay cho emoji, hỗ trợ dark/light theme switch
 - [ ] Bản Android: nhập ảnh từ thư viện, tethering USB-OTG, bản release ký số (xem roadmap riêng trong `android/README.md`)
 

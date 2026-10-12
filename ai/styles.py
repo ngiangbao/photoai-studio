@@ -111,6 +111,27 @@ STYLES = [
             ),
         },
     ),
+    EditStyle(
+        key="cleanup",
+        prompts={
+            LANG_VI: (
+                "Hãy loại bỏ người lạ, vật thể hoặc chi tiết gây xao nhãng ở hậu cảnh của ảnh "
+                "này, sau đó phục hồi (inpaint) lại phần hậu cảnh một cách tự nhiên và liền "
+                "mạch, không để lại viền lạ, vết mờ hay hoa văn lặp lại bất thường. Giữ nguyên "
+                "hoàn toàn chủ thể chính, bố cục, màu sắc và ánh sáng tổng thể của ảnh. Nếu "
+                "người dùng có ghi chú thêm mô tả cụ thể vật/người cần xoá, hãy ưu tiên xoá "
+                "đúng đối tượng đó."
+            ),
+            LANG_EN: (
+                "Remove any distracting strangers, objects, or background clutter from this "
+                "photo, then inpaint the background naturally and seamlessly, with no stray "
+                "edges, blur artifacts, or repeating patterns. Keep the main subject, "
+                "composition, colors, and overall lighting completely unchanged. If the user "
+                "gives an extra note describing a specific object or person to remove, "
+                "prioritize removing exactly that."
+            ),
+        },
+    ),
 ]
 
 STYLES_BY_KEY = {s.key: s for s in STYLES}
