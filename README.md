@@ -123,6 +123,29 @@ Sau đó dùng [Inno Setup](https://jrsoftware.org/isinfo.php) để đóng gói
 Mọi đóng góp, báo lỗi hay đề xuất tính năng đều được hoan nghênh — hãy mở một
 [Issue](../../issues) hoặc gửi Pull Request.
 
+## ☕ Ủng hộ dự án
+
+Nếu bạn thấy **PhotoAI Studio** hữu ích, bạn có thể ủng hộ mình một ly cà phê để duy trì
+và phát triển dự án 🙏
+
+<div align="center">
+<table>
+<tr>
+<td align="center" width="50%">
+<b>MoMo</b><br/><br/>
+<img src="assets/donate-momo.jpg" width="220" alt="QR MoMo ủng hộ dự án PhotoAI Studio"/>
+</td>
+<td align="center" width="50%">
+<b>Ngân hàng (VietQR)</b><br/><br/>
+<img src="assets/donate-bank.jpg" width="220" alt="QR ngân hàng VietQR ủng hộ dự án PhotoAI Studio"/>
+</td>
+</tr>
+</table>
+
+Nguyễn Giang Bảo
+
+</div>
+
 ## 📄 License
 
 Phát hành theo giấy phép [MIT](LICENSE).
