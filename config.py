@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 APP_NAME = "PhotoAI Studio"
-APP_VERSION = "alpha-001"
+APP_VERSION = "alpha-002"
 
 CONFIG_DIR = Path(os.getenv("APPDATA", str(Path.home()))) / "PhotoAIStudio"
 CONFIG_FILE = CONFIG_DIR / "config.json"
