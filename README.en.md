@@ -154,13 +154,6 @@ pyinstaller --name "PhotoAI Studio" --windowed --onedir --icon assets/icon.ico m
 # Then open installer.iss in Inno Setup and Build
 ```
 
-## 📱 Android version
-
-In progress under [`android/`](android/) — built with Kotlin + Jetpack Compose, sharing the
-same 5 styles and Gemini-calling logic as the Windows app, but capturing with the phone's own
-camera (via CameraX) instead of digiCamControl (which only runs on Windows). See
-[`android/README.md`](android/README.md) for architecture details and how to try it.
-
 ## 🗺️ Roadmap
 
 - [ ] Direct tethering via vendor SDKs (Canon EDSDK, Nikon SDK) in addition to digiCamControl
@@ -170,7 +163,6 @@ camera (via CameraX) instead of digiCamControl (which only runs on Windows). See
       go through generative AI (the Portrait style) rather than a precise mesh warp
 - [ ] A stackable library of 1,200+ filters, matching the original 醒图 app
 - [ ] A dedicated SVG icon set instead of emoji, with dark/light theme switching
-- [ ] Android: import from gallery, USB-OTG tethering, signed release builds (see its own roadmap in `android/README.md`)
 
 ## 🤝 Contributing
 

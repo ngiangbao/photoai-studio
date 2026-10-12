@@ -154,13 +154,6 @@ pyinstaller --name "PhotoAI Studio" --windowed --onedir --icon assets/icon.ico m
 # Sau đó mở installer.iss bằng Inno Setup và Build
 ```
 
-## 📱 Bản Android
-
-Đang triển khai tại [`android/`](android/) — dùng Kotlin + Jetpack Compose, cùng 5 phong cách
-và logic gọi Gemini với bản Windows, nhưng chụp bằng camera của điện thoại (qua CameraX) thay
-vì digiCamControl (vốn chỉ chạy trên Windows). Chi tiết kiến trúc và hướng dẫn chạy thử ở
-[`android/README.md`](android/README.md).
-
 ## 🗺️ Roadmap
 
 - [ ] Hỗ trợ tethering trực tiếp qua SDK riêng (Canon EDSDK, Nikon SDK) ngoài digiCamControl
@@ -171,7 +164,6 @@ vì digiCamControl (vốn chỉ chạy trên Windows). Chi tiết kiến trúc v
       mesh chính xác theo điểm mốc
 - [ ] Thư viện 1.200+ bộ lọc có thể xếp chồng (filter stack) như bản 醒图 gốc
 - [ ] Bộ icon SVG riêng thay cho emoji, hỗ trợ dark/light theme switch
-- [ ] Bản Android: nhập ảnh từ thư viện, tethering USB-OTG, bản release ký số (xem roadmap riêng trong `android/README.md`)
 
 ## 🤝 Đóng góp
 
