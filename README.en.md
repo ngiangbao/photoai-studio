@@ -32,9 +32,6 @@ compare slider, and buttons/tap targets large enough to work well on touchscreen
 > ⚠️ **Currently in `alpha-003`** — the core features work but haven't been tested widely
 > across camera models yet. Feedback and issues are always welcome.
 >
-> Starting with `alpha-003`, several features are inspired by the mobile photo-editing app
-> **醒图 (XingTu/retouchpics.com)**: one-tap tools, AI object removal, custom presets, and
-> batch processing — details below.
 
 ## ✨ Features
 
