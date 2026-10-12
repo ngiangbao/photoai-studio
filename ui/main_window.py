@@ -2,14 +2,16 @@
 ui/main_window.py - Cua so chinh: dieu phoi 4 trang (Thu vien / Chinh AI / Chinh tay / Cai dat)
 qua thanh dieu huong duoi, phong cach giong app chinh anh di dong, than thien cam ung.
 """
+import subprocess
+import tempfile
 from pathlib import Path
 from typing import Optional
 
 from PIL import Image
-from PySide6.QtCore import Qt, QThread, Signal, QFileSystemWatcher
+from PySide6.QtCore import Qt, QThread, Signal, QFileSystemWatcher, QTimer
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QStackedWidget, QMessageBox,
-    QInputDialog, QProgressDialog
+    QInputDialog, QProgressDialog, QApplication
 )
 
 from config import load_config, save_config, APP_NAME, APP_VERSION
@@ -17,6 +19,7 @@ from camera.digicam import DigiCamController, DigiCamError
 from ai.gemini_editor import GeminiEditor, GeminiEditError
 from ai.manual_edit import ManualAdjustments, apply_adjustments, blend_with_original
 from ai.one_tap import auto_white_balance, smart_auto_adjust
+from updater import check_for_update, download_installer, UpdateCheckError
 from ui.theme import QSS
 from ui.widgets import BottomNavBar, NavItem
 from ui.pages import LibraryPage, AIEditPage, ManualEditPage, SettingsPage
@@ -62,6 +65,43 @@ class EditWorker(QThread):
             self.failed.emit(f"{t('error.gemini_api_call', error=exc)}")
 
 
+class UpdateCheckWorker(QThread):
+    finished_ok = Signal(object)  # dict thong tin ban moi, hoac None neu da la moi nhat
+    failed = Signal(str)
+
+    def __init__(self, current_version: str, parent=None):
+        super().__init__(parent)
+        self.current_version = current_version
+
+    def run(self):
+        try:
+            result = check_for_update(self.current_version)
+            self.finished_ok.emit(result)
+        except UpdateCheckError as exc:
+            self.failed.emit(str(exc))
+
+
+class UpdateDownloadWorker(QThread):
+    progress = Signal(int, int)  # da_tai, tong_so_byte (0 neu khong biet tong)
+    finished_ok = Signal(str)     # duong dan file .exe da tai xong
+    failed = Signal(str)
+
+    def __init__(self, asset_url: str, dest_path: Path, parent=None):
+        super().__init__(parent)
+        self.asset_url = asset_url
+        self.dest_path = dest_path
+
+    def run(self):
+        try:
+            path = download_installer(
+                self.asset_url, self.dest_path,
+                progress_callback=lambda done, total: self.progress.emit(done, total),
+            )
+            self.finished_ok.emit(str(path))
+        except Exception as exc:
+            self.failed.emit(str(exc))
+
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -87,6 +127,11 @@ class MainWindow(QMainWindow):
         self._batch_paths: list[str] = []
         self._batch_index = 0
         self._batch_progress = None
+        self._check_worker = None
+        self._download_worker = None
+        self._update_progress = None
+        self._update_silent = True
+        self._update_check_running = False
 
         self._build_ui()
         self._init_camera()
@@ -94,6 +139,10 @@ class MainWindow(QMainWindow):
         self.library_page.refresh(self.cfg["capture_folder"])
         self.settings_page.load_from_config(self.cfg, APP_NAME, APP_VERSION)
         self.ai_page.set_presets(self.cfg.get("custom_presets", []))
+
+        if self.cfg.get("auto_check_updates", True):
+            # Doi 1.5s sau khi cua so hien ra moi kiem tra, tranh lam cham luc khoi dong.
+            QTimer.singleShot(1500, lambda: self.on_check_update_requested(silent=True))
 
     # ------------------------------------------------------------------
     def _build_ui(self):
@@ -138,6 +187,7 @@ class MainWindow(QMainWindow):
         self.manual_page.autoAdjustRequested.connect(self.on_manual_auto_adjust)
         self.settings_page.settingsSaved.connect(self.on_settings_saved)
         self.settings_page.languageChanged.connect(self.on_language_changed)
+        self.settings_page.checkUpdateRequested.connect(lambda: self.on_check_update_requested(silent=False))
 
         self.statusBar().showMessage(t("status.ready"))
 
@@ -443,6 +493,103 @@ class MainWindow(QMainWindow):
         self._batch_failed += 1
         self._batch_index += 1
         self._process_next_batch_item()
+
+    # ------------------------------------------------------------------
+    # Tu dong kiem tra & tai ban cap nhat (GitHub Releases)
+    # ------------------------------------------------------------------
+    def on_check_update_requested(self, silent: bool = False):
+        if self._update_check_running:
+            return
+        self._update_check_running = True
+        self._update_silent = silent
+        if not silent:
+            self.settings_page.set_update_status(t("settings.update_checking"))
+        self._check_worker = UpdateCheckWorker(APP_VERSION)
+        self._check_worker.finished_ok.connect(self._on_update_check_ok)
+        self._check_worker.failed.connect(self._on_update_check_failed)
+        self._check_worker.start()
+
+    def _on_update_check_ok(self, result: Optional[dict]):
+        self._update_check_running = False
+        if result is None:
+            self.settings_page.set_update_status(t("settings.update_uptodate", version=APP_VERSION))
+            if not self._update_silent:
+                QMessageBox.information(self, t("update.uptodate_title"), t("update.uptodate_message"))
+            return
+
+        self.settings_page.set_update_status(t("settings.update_available", version=result["version"]))
+        self._prompt_update_available(result)
+
+    def _on_update_check_failed(self, message: str):
+        self._update_check_running = False
+        if not self._update_silent:
+            self.settings_page.set_update_status(t("settings.update_check_failed"))
+            QMessageBox.warning(self, t("update.check_error_title"), t("update.check_error_message", error=message))
+        # Kiem tra tu dong (silent): lang le bo qua loi mang/API, khong lam phien nguoi dung.
+
+    def _prompt_update_available(self, result: dict):
+        reply = QMessageBox.question(
+            self, t("update.available_title"),
+            t("update.available_message", version=result["version"], current=APP_VERSION),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if reply == QMessageBox.StandardButton.Yes:
+            self._start_update_download(result)
+
+    def _start_update_download(self, result: dict):
+        if not result.get("asset_url"):
+            QMessageBox.warning(
+                self, t("update.no_installer_title"),
+                t("update.no_installer_message", url=result["notes_url"]),
+            )
+            return
+
+        dest = Path(tempfile.gettempdir()) / "PhotoAIStudio_Updates" / result["asset_name"]
+        self._update_progress = QProgressDialog(t("update.downloading"), "", 0, 100, self)
+        self._update_progress.setWindowTitle(t("update.download_title"))
+        self._update_progress.setCancelButton(None)
+        self._update_progress.setWindowModality(Qt.WindowModality.WindowModal)
+        self._update_progress.show()
+
+        self._download_worker = UpdateDownloadWorker(result["asset_url"], dest)
+        self._download_worker.progress.connect(self._on_update_download_progress)
+        self._download_worker.finished_ok.connect(self._on_update_download_ok)
+        self._download_worker.failed.connect(self._on_update_download_failed)
+        self._download_worker.start()
+
+    def _on_update_download_progress(self, done: int, total: int):
+        if self._update_progress is None:
+            return
+        if total > 0:
+            self._update_progress.setMaximum(100)
+            self._update_progress.setValue(int(done * 100 / total))
+        else:
+            self._update_progress.setMaximum(0)  # khong biet tong dung lan -> thanh chay vo dinh
+
+    def _on_update_download_ok(self, installer_path: str):
+        if self._update_progress is not None:
+            self._update_progress.close()
+            self._update_progress = None
+
+        reply = QMessageBox.question(
+            self, t("update.ready_title"), t("update.ready_message"),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if reply == QMessageBox.StandardButton.Yes:
+            try:
+                subprocess.Popen([installer_path], shell=False)
+            except OSError as exc:
+                QMessageBox.critical(self, t("update.download_error_title"), str(exc))
+                return
+            QApplication.quit()
+        else:
+            self.settings_page.set_update_status(t("update.saved_for_later", path=installer_path))
+
+    def _on_update_download_failed(self, message: str):
+        if self._update_progress is not None:
+            self._update_progress.close()
+            self._update_progress = None
+        QMessageBox.critical(self, t("update.download_error_title"), message)
 
     def on_language_changed(self, lang_code: str):
         """Doi ngon ngu ngay trong app, khong can khoi dong lai."""

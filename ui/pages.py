@@ -10,7 +10,7 @@ from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QListWidget, QListWidgetItem, QScrollArea, QFrame, QSlider, QLineEdit,
-    QFormLayout, QFileDialog, QTextEdit, QComboBox, QAbstractItemView, QMenu
+    QFormLayout, QFileDialog, QTextEdit, QComboBox, QAbstractItemView, QMenu, QCheckBox
 )
 
 from ai.styles import STYLES
@@ -469,6 +469,7 @@ class ManualEditPage(QWidget):
 class SettingsPage(QWidget):
     settingsSaved = Signal(dict)
     languageChanged = Signal(str)
+    checkUpdateRequested = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -510,6 +511,9 @@ class SettingsPage(QWidget):
         self.output_folder_edit, output_row = self._path_row(self._browse_output)
         self.output_row_label = self._add_row("settings.output_folder_label", output_row)
 
+        self.auto_update_checkbox = QCheckBox(t("settings.auto_update_checkbox"))
+        self.form.addRow(self.auto_update_checkbox)
+
         scroll.setWidget(inner)
 
         self.save_btn = QPushButton(t("settings.save_button"))
@@ -517,6 +521,15 @@ class SettingsPage(QWidget):
         self.save_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.save_btn.clicked.connect(self._emit_save)
         outer.addWidget(self.save_btn)
+
+        self.check_update_btn = QPushButton(t("settings.check_update_button"))
+        self.check_update_btn.setObjectName("SecondaryButton")
+        self.check_update_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.check_update_btn.clicked.connect(self.checkUpdateRequested.emit)
+        outer.addWidget(self.check_update_btn)
+
+        self.update_status_label = caption("")
+        outer.addWidget(self.update_status_label)
 
         self._app_name = ""
         self._app_version = ""
@@ -580,6 +593,11 @@ class SettingsPage(QWidget):
             self.language_combo.setCurrentIndex(idx)
             self.language_combo.blockSignals(False)
 
+        self.auto_update_checkbox.setChecked(bool(cfg.get("auto_check_updates", True)))
+
+    def set_update_status(self, text: str):
+        self.update_status_label.setText(text)
+
     def _emit_save(self):
         self.settingsSaved.emit({
             "gemini_api_key": self.api_key_edit.text().strip(),
@@ -588,6 +606,7 @@ class SettingsPage(QWidget):
             "capture_folder": self.capture_folder_edit.text().strip(),
             "output_folder": self.output_folder_edit.text().strip(),
             "language": self.language_combo.currentData() or get_language(),
+            "auto_check_updates": self.auto_update_checkbox.isChecked(),
         })
 
     def retranslate(self):
@@ -599,6 +618,8 @@ class SettingsPage(QWidget):
         self.capture_row_label.setText(t("settings.capture_folder_label"))
         self.output_row_label.setText(t("settings.output_folder_label"))
         self.save_btn.setText(t("settings.save_button"))
+        self.auto_update_checkbox.setText(t("settings.auto_update_checkbox"))
+        self.check_update_btn.setText(t("settings.check_update_button"))
         if self._app_name:
             self.version_label.setText(
                 t("settings.version_label", app_name=self._app_name, app_version=self._app_version)

@@ -4,7 +4,12 @@
 ; de nguoi dung KHONG can thuc hien buoc setup trung gian nao.
 
 #define MyAppName "PhotoAI Studio"
-#define MyAppVersion "alpha-002"
+; MyAppVersion duoc workflow CI truyen vao qua "ISCC.exe /DMyAppVersion=<version doc tu config.py>"
+; de luon dong bo voi APP_VERSION trong app (xem .github/workflows/release.yml). #ifndef cho phep
+; build thu cong (khong truyen /D) van chay duoc voi gia tri mac dinh ben duoi.
+#ifndef MyAppVersion
+  #define MyAppVersion "dev"
+#endif
 #define MyAppPublisher "Giang Bao Nguyen"
 #define MyAppExeName "PhotoAI Studio.exe"
 #define DigiCamUrl "https://github.com/dukus/digiCamControl/releases/download/2.0.0/digiCamControlsetup_2.0.0.0.msi"

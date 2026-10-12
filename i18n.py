@@ -98,6 +98,15 @@ STRINGS = {
     "settings.dialog_capture_title": {"vi": "Chọn thư mục ảnh chụp", "en": "Select capture folder"},
     "settings.dialog_output_title": {"vi": "Chọn thư mục ảnh đã chỉnh", "en": "Select output folder"},
     "settings.saved_status": {"vi": "Đã lưu cài đặt.", "en": "Settings saved."},
+    "settings.auto_update_checkbox": {
+        "vi": "Tự động kiểm tra cập nhật khi mở ứng dụng",
+        "en": "Automatically check for updates on startup",
+    },
+    "settings.check_update_button": {"vi": "🔄  Kiểm tra cập nhật", "en": "🔄  Check for Updates"},
+    "settings.update_checking": {"vi": "Đang kiểm tra cập nhật...", "en": "Checking for updates..."},
+    "settings.update_uptodate": {"vi": "Bạn đang dùng bản mới nhất ({version}).", "en": "You're on the latest version ({version})."},
+    "settings.update_available": {"vi": "Có bản mới: {version}", "en": "New version available: {version}"},
+    "settings.update_check_failed": {"vi": "Không kiểm tra được cập nhật.", "en": "Couldn't check for updates."},
 
     # ---- Trang thai chung ----
     "status.ready": {"vi": "Sẵn sàng.", "en": "Ready."},
@@ -151,6 +160,37 @@ STRINGS = {
     "error.gemini_no_content": {"vi": "Gemini không trả về nội dung ảnh.", "en": "Gemini returned no image content."},
     "error.gemini_no_image_data": {"vi": "Không tìm thấy dữ liệu ảnh trong phản hồi của Gemini.", "en": "No image data found in Gemini's response."},
     "gemini.extra_note_prefix": {"vi": "Yêu cầu thêm từ người dùng:", "en": "Additional user request:"},
+
+    # ---- Tu dong cap nhat (updater.py) ----
+    "update.uptodate_title": {"vi": "Đã là bản mới nhất", "en": "You're up to date"},
+    "update.uptodate_message": {"vi": "Bạn đang dùng phiên bản mới nhất.", "en": "You're already running the latest version."},
+    "update.check_error_title": {"vi": "Không kiểm tra được cập nhật", "en": "Couldn't check for updates"},
+    "update.check_error_message": {
+        "vi": "Không thể kết nối tới GitHub để kiểm tra bản mới.\nChi tiết: {error}",
+        "en": "Couldn't reach GitHub to check for updates.\nDetails: {error}",
+    },
+    "update.available_title": {"vi": "Có bản cập nhật mới", "en": "An update is available"},
+    "update.available_message": {
+        "vi": "Có phiên bản mới {version} (bạn đang dùng {current}).\nBạn có muốn tải về và cài đặt ngay không?",
+        "en": "Version {version} is available (you're on {current}).\nDownload and install it now?",
+    },
+    "update.no_installer_title": {"vi": "Không tìm thấy file cài đặt", "en": "No installer found"},
+    "update.no_installer_message": {
+        "vi": "Bản phát hành mới không có file .exe đính kèm. Xem chi tiết tại:\n{url}",
+        "en": "The new release has no .exe file attached. See details at:\n{url}",
+    },
+    "update.download_title": {"vi": "Đang tải bản cập nhật", "en": "Downloading update"},
+    "update.downloading": {"vi": "Đang tải bản cập nhật...", "en": "Downloading the update..."},
+    "update.ready_title": {"vi": "Đã tải xong", "en": "Download complete"},
+    "update.ready_message": {
+        "vi": "Đã tải xong bản cập nhật. Ứng dụng sẽ đóng để bạn chạy trình cài đặt. Tiếp tục?",
+        "en": "The update has been downloaded. The app will close so you can run the installer. Continue?",
+    },
+    "update.saved_for_later": {
+        "vi": "Đã lưu trình cài đặt tại: {path}",
+        "en": "Installer saved to: {path}",
+    },
+    "update.download_error_title": {"vi": "Lỗi tải bản cập nhật", "en": "Update download error"},
 }
 
 

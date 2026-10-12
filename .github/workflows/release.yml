@@ -21,6 +21,17 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Determine release version from config.py
+        # Lay dung APP_VERSION trong app (vd "alpha-004") de dat ten tag/release VA truyen vao
+        # Inno Setup, tranh lech phien ban nhu truoc day (installer.iss co MyAppVersion rieng,
+        # khong khop voi config.py). Day cung la version ma updater.py trong app se so sanh.
+        id: tag
+        shell: bash
+        run: |
+          VERSION=$(python -c "import config; print(config.APP_VERSION)")
+          echo "Phien ban doc duoc: $VERSION"
+          echo "tag=$VERSION" >> "$GITHUB_OUTPUT"
+
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
@@ -40,17 +51,7 @@ jobs:
 
       - name: Compile installer (Inno Setup)
         run: |
-          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
-
-      - name: Determine release tag
-        id: tag
-        shell: bash
-        run: |
-          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
-            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
-          else
-            echo "tag=manual-${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
-          fi
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DMyAppVersion=${{ steps.tag.outputs.tag }} installer.iss
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4

@@ -4,7 +4,7 @@
 
 **Chụp ảnh tethering từ máy ảnh qua USB và tự động chỉnh sửa bằng AI — giao diện kiểu app chỉnh ảnh di động, thân thiện cảm ứng**
 
-![Version](https://img.shields.io/badge/version-alpha--003-orange)
+![Version](https://img.shields.io/badge/version-alpha--004-orange)
 ![Platform](https://img.shields.io/badge/platform-Windows-0078D6?logo=windows)
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white)
 ![UI](https://img.shields.io/badge/UI-PySide6-41CD52?logo=qt&logoColor=white)
@@ -30,12 +30,11 @@ Xingtu/Meitu): thanh điều hướng dưới, thẻ chọn phong cách dạng c
 trước/sau, và các nút/vùng chạm đủ lớn để dùng tốt trên cả màn hình cảm ứng. Ứng dụng hỗ trợ
 song ngữ **Tiếng Việt / English**, chuyển đổi ngay trong app không cần khởi động lại.
 
-> ⚠️ **Đang trong giai đoạn `alpha-003`** — các tính năng cốt lõi đã hoạt động nhưng chưa được
+> ⚠️ **Đang trong giai đoạn `alpha-004`** — các tính năng cốt lõi đã hoạt động nhưng chưa được
 > kiểm thử rộng rãi trên nhiều dòng máy ảnh. Phản hồi & issue luôn được chào đón.
 >
-> Từ `alpha-003`, một số tính năng được tham khảo từ ứng dụng chỉnh ảnh di động **醒图
-> (XingTu/retouchpics.com)**: công cụ 1-chạm, xoá vật thể bằng AI, preset tuỳ chỉnh và
-> xử lý hàng loạt — xem chi tiết bên dưới.
+> Từ `alpha-004`, app có thể **tự kiểm tra và tải bản cập nhật mới** ngay trong app — xem chi
+> tiết bên dưới.
 
 ## ✨ Tính năng
 
@@ -66,7 +65,14 @@ sang **chế độ chọn nhiều** để chọn nhiều ảnh cùng lúc và x�
 cộng 2 **công cụ 1-chạm xử lý cục bộ** (không cần AI, chạy ngay lập tức): 🌈 Cân bằng trắng
 (gray-world) và ✨ Tự động chỉnh sáng/màu/tương phản.
 
-**Cài đặt** ⚙️ — đổi model AI, đường dẫn digiCamControl, thư mục lưu ảnh, và **ngôn ngữ** (Việt/Anh).
+**Cài đặt** ⚙️ — đổi model AI, đường dẫn digiCamControl, thư mục lưu ảnh, **ngôn ngữ** (Việt/Anh),
+và **tự động kiểm tra bản cập nhật** (có thể tắt/mở, hoặc bấm **"Kiểm tra cập nhật"** để kiểm
+tra ngay).
+
+**Tự động cập nhật** 🔄 — mỗi khi mở app, PhotoAI Studio tự kiểm tra bản mới trên GitHub
+Releases (im lặng nếu không có gì mới); khi có bản mới, app hỏi xác nhận trước khi tải, hiện
+thanh tiến trình tải, rồi hỏi tiếp trước khi mở trình cài đặt và tự tắt app để bạn cài. Có thể
+tắt kiểm tra tự động trong **Cài đặt**, hoặc bấm nút kiểm tra thủ công bất cứ lúc nào.
 
 ## 🏗️ Kiến trúc
 
@@ -78,6 +84,7 @@ photoai_app/
 ├── installer.iss            # Script Inno Setup (tự tải & cài digiCamControl)
 ├── assets/icon.ico           # Icon ứng dụng
 ├── i18n.py                   # Hệ thống dịch song ngữ Việt/Anh nhẹ
+├── updater.py                # Kiểm tra & tải bản cập nhật từ GitHub Releases (chỉ dùng urllib chuẩn)
 ├── camera/
 │   └── digicam.py            # Wrapper gọi digiCamControl (CameraControlCmd.exe)
 ├── ai/
@@ -141,12 +148,17 @@ python main.py
    **"Xử lý hàng loạt"** (dùng phong cách/preset đang chọn ở tab Chỉnh AI).
 7. Đổi ngôn ngữ bất cứ lúc nào ở tab **Cài đặt** → **Ngôn ngữ** (áp dụng ngay, không cần khởi
    động lại).
+8. App tự kiểm tra bản mới mỗi khi mở (có thể tắt ở tab **Cài đặt**), hoặc bấm **"Kiểm tra cập
+   nhật"** để kiểm tra ngay — nếu có bản mới, xác nhận để tải rồi xác nhận tiếp để cài.
 
 ## 📦 Build installer từ mã nguồn
 
-Mỗi khi tag dạng `v*` được đẩy lên GitHub, workflow **Build & Release Windows Installer**
-(`.github/workflows/release.yml`) tự động: build bằng PyInstaller → đóng gói bằng Inno Setup →
-đăng `PhotoAIStudio-Setup-*.exe` lên mục **Releases**. Build thủ công:
+Mỗi khi tag dạng `v*` được đẩy lên GitHub (hoặc chạy thủ công qua **workflow_dispatch**),
+workflow **Build & Release Windows Installer** (`.github/workflows/release.yml`) tự động: đọc
+đúng `APP_VERSION` từ `config.py` → build bằng PyInstaller → đóng gói bằng Inno Setup (truyền
+đúng phiên bản đó vào `installer.iss`) → đăng `PhotoAIStudio-Setup-*.exe` lên mục **Releases**
+với tag/tên đúng bằng `APP_VERSION`. Nhờ vậy, tag release, tên file cài đặt và phiên bản mà
+`updater.py` trong app so sánh luôn đồng bộ với nhau. Build thủ công:
 
 ```bash
 pip install pyinstaller
@@ -159,6 +171,7 @@ pyinstaller --name "PhotoAI Studio" --windowed --onedir --icon assets/icon.ico m
 - [ ] Hỗ trợ tethering trực tiếp qua SDK riêng (Canon EDSDK, Nikon SDK) ngoài digiCamControl
 - [x] Xử lý hàng loạt nhiều ảnh cùng lúc (batch processing)
 - [x] Tuỳ chỉnh / lưu phong cách của riêng người dùng (preset)
+- [x] Tự động kiểm tra & tải bản cập nhật mới từ GitHub Releases
 - [ ] Chỉnh dáng mặt (face reshape/lift) bằng landmark — cần thêm thư viện nhận diện khuôn mặt,
       hiện tại các hiệu ứng khuôn mặt vẫn đi qua AI tạo sinh (phong cách Chân dung) thay vì warp
       mesh chính xác theo điểm mốc

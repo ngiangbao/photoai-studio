@@ -8,7 +8,7 @@ from pathlib import Path
 from i18n import LANG_VI, detect_system_language
 
 APP_NAME = "PhotoAI Studio"
-APP_VERSION = "alpha-003"
+APP_VERSION = "alpha-004"
 
 CONFIG_DIR = Path(os.getenv("APPDATA", str(Path.home()))) / "PhotoAIStudio"
 CONFIG_FILE = CONFIG_DIR / "config.json"
@@ -21,6 +21,7 @@ DEFAULT_CONFIG = {
     "output_folder": str(Path.home() / "Pictures" / "PhotoAIStudio" / "Edited"),
     "language": LANG_VI,  # duoc ghi de bang ngon ngu he thong khi tao config lan dau, xem below
     "custom_presets": [],  # [{"name":..., "base_style":..., "intensity":0..1, "extra_note":...}]
+    "auto_check_updates": True,  # tu dong kiem tra ban moi tren GitHub Releases khi mo app
 }
 
 
