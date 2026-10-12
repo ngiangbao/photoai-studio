@@ -1,29 +1,66 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Default (fallback) strings - English. Shown on any device whose language has no dedicated
+  values-<lang> override below. See values-vi/strings.xml for the Vietnamese version, which
+  is what Vietnamese-language devices see instead.
+-->
 <resources>
     <string name="app_name">PhotoAI Studio</string>
 
     <!-- Home screen -->
-    <string name="capture_new_photo">Chụp ảnh mới</string>
-    <string name="capturing">Đang chụp…</string>
-    <string name="camera_permission_rationale">Cần quyền Camera để chụp ảnh trực tiếp từ app. Nhấn nút Chụp ảnh mới để cấp quyền.</string>
-    <string name="captured_photos_title">Ảnh đã chụp</string>
-    <string name="no_photos_yet">Chưa có ảnh nào. Hãy chụp tấm đầu tiên!</string>
+    <string name="capture_new_photo">Take a photo</string>
+    <string name="capturing">Capturing…</string>
+    <string name="camera_permission_rationale">Camera permission is needed to take photos in the app. Tap "Take a photo" to allow it.</string>
+    <string name="captured_photos_title">Captured photos</string>
+    <string name="no_photos_yet">No photos yet. Take your first one!</string>
 
     <!-- Editor screen -->
-    <string name="editor_title">Chỉnh sửa ảnh</string>
-    <string name="before_label">Ảnh gốc</string>
-    <string name="after_label">Kết quả AI</string>
-    <string name="style_label">Phong cách</string>
-    <string name="extra_note_label">Ghi chú thêm cho AI (tuỳ chọn)</string>
-    <string name="edit_with_ai">Chỉnh sửa bằng AI</string>
-    <string name="processing">AI đang xử lý…</string>
-    <string name="ai_result_placeholder">Kết quả AI sẽ hiện ở đây</string>
-    <string name="save_photo">Lưu ảnh</string>
+    <string name="editor_title">Edit photo</string>
+    <string name="before_label">Original</string>
+    <string name="after_label">AI result</string>
+    <string name="style_label">Style</string>
+    <string name="extra_note_label">Extra note for the AI (optional)</string>
+    <string name="edit_with_ai">Edit with AI</string>
+    <string name="processing">AI is processing…</string>
+    <string name="ai_result_placeholder">The AI result will appear here</string>
+    <string name="save_photo">Save photo</string>
 
     <!-- Settings screen -->
-    <string name="settings_title">Cài đặt</string>
-    <string name="settings_hint">Nhập Gemini API key để dùng tính năng chỉnh sửa bằng AI. Lấy key miễn phí tại Google AI Studio (ai.google.dev).</string>
+    <string name="settings_title">Settings</string>
+    <string name="settings_hint">Enter a Gemini API key to use AI editing. Get a free key at Google AI Studio (ai.google.dev).</string>
     <string name="gemini_api_key_label">Gemini API key</string>
-    <string name="gemini_model_label">Model Gemini</string>
-    <string name="save">Lưu</string>
+    <string name="gemini_model_label">Gemini model</string>
+    <string name="save">Save</string>
+
+    <!-- Style names (match ai/EditStyle.kt keys; the prompt text sent to Gemini stays in
+         Vietnamese regardless of this label - see ui/StyleLabels.kt) -->
+    <string name="style_portrait">Portrait</string>
+    <string name="style_outdoor">Outdoor</string>
+    <string name="style_landscape">Landscape</string>
+    <string name="style_people">People / everyday</string>
+    <string name="style_graduation">Graduation</string>
+
+    <!-- Status messages -->
+    <string name="status_photo_captured">Captured: %1$s</string>
+    <string name="status_processing">AI is processing the photo, please wait…</string>
+    <string name="status_processing_done">Done.</string>
+    <string name="status_photo_saved">Photo saved at: %1$s</string>
+
+    <!-- Error messages -->
+    <string name="error_missing_api_key">No Gemini API key yet. Go to Settings to enter one.</string>
+    <string name="error_no_photo_selected">Please select a photo first.</string>
+    <string name="error_camera_not_ready">Camera isn\'t ready yet. Wait for the preview to appear and try again.</string>
+    <string name="error_camera_init_failed">Couldn\'t start the camera: %1$s</string>
+    <string name="error_capture_failed">Taking the photo failed: %1$s</string>
+    <string name="error_style_not_found">Style not found: %1$s</string>
+    <string name="error_image_read_failed">Couldn\'t read the photo: %1$s</string>
+    <string name="error_network_call_failed">Error calling the Gemini API: %1$s</string>
+    <string name="error_api_http_error">Error calling the Gemini API (HTTP %1$d): %2$s</string>
+    <string name="error_no_candidates">Gemini returned no result.</string>
+    <string name="error_prohibited_content">The photo was blocked by Gemini\'s safety filter.</string>
+    <string name="error_no_content">Gemini didn\'t return any content.</string>
+    <string name="error_no_image_in_response">No image data found in Gemini\'s response.</string>
+    <string name="error_image_decode_failed">Couldn\'t decode the image returned by Gemini.</string>
+    <string name="error_save_failed">Couldn\'t save the photo: %1$s</string>
+    <string name="error_unknown">Unknown error: %1$s</string>
 </resources>

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Chuoi tieng Viet - tu dong hien thi tren may dat ngon ngu Tieng Viet. -->
+<resources>
+    <string name="app_name">PhotoAI Studio</string>
+
+    <!-- Màn hình chính -->
+    <string name="capture_new_photo">Chụp ảnh mới</string>
+    <string name="capturing">Đang chụp…</string>
+    <string name="camera_permission_rationale">Cần quyền Camera để chụp ảnh trực tiếp từ app. Nhấn "Chụp ảnh mới" để cấp quyền.</string>
+    <string name="captured_photos_title">Ảnh đã chụp</string>
+    <string name="no_photos_yet">Chưa có ảnh nào. Hãy chụp tấm đầu tiên!</string>
+
+    <!-- Màn hình chỉnh sửa -->
+    <string name="editor_title">Chỉnh sửa ảnh</string>
+    <string name="before_label">Ảnh gốc</string>
+    <string name="after_label">Kết quả AI</string>
+    <string name="style_label">Phong cách</string>
+    <string name="extra_note_label">Ghi chú thêm cho AI (tuỳ chọn)</string>
+    <string name="edit_with_ai">Chỉnh sửa bằng AI</string>
+    <string name="processing">AI đang xử lý…</string>
+    <string name="ai_result_placeholder">Kết quả AI sẽ hiện ở đây</string>
+    <string name="save_photo">Lưu ảnh</string>
+
+    <!-- Màn hình cài đặt -->
+    <string name="settings_title">Cài đặt</string>
+    <string name="settings_hint">Nhập Gemini API key để dùng tính năng chỉnh sửa bằng AI. Lấy key miễn phí tại Google AI Studio (ai.google.dev).</string>
+    <string name="gemini_api_key_label">Gemini API key</string>
+    <string name="gemini_model_label">Model Gemini</string>
+    <string name="save">Lưu</string>
+
+    <!-- Tên phong cách (khớp key trong ai/EditStyle.kt; prompt gui cho Gemini van giu nguyen
+         tieng Viet du UI hien thi ngon ngu gi - xem ui/StyleLabels.kt) -->
+    <string name="style_portrait">Chân dung</string>
+    <string name="style_outdoor">Ngoại cảnh</string>
+    <string name="style_landscape">Phong cảnh</string>
+    <string name="style_people">Chụp người / đời thường</string>
+    <string name="style_graduation">Chụp kỷ yếu</string>
+
+    <!-- Thông báo trạng thái -->
+    <string name="status_photo_captured">Đã chụp: %1$s</string>
+    <string name="status_processing">AI đang xử lý ảnh, vui lòng chờ…</string>
+    <string name="status_processing_done">Xử lý xong.</string>
+    <string name="status_photo_saved">Đã lưu ảnh tại: %1$s</string>
+
+    <!-- Thông báo lỗi -->
+    <string name="error_missing_api_key">Chưa có Gemini API key. Vào Cài đặt để nhập key.</string>
+    <string name="error_no_photo_selected">Hãy chọn một ảnh trước.</string>
+    <string name="error_camera_not_ready">Camera chưa sẵn sàng. Hãy chờ màn hình xem trước hiện lên rồi thử lại.</string>
+    <string name="error_camera_init_failed">Không khởi tạo được camera: %1$s</string>
+    <string name="error_capture_failed">Chụp ảnh thất bại: %1$s</string>
+    <string name="error_style_not_found">Không tìm thấy phong cách: %1$s</string>
+    <string name="error_image_read_failed">Không đọc được ảnh: %1$s</string>
+    <string name="error_network_call_failed">Lỗi khi gọi Gemini API: %1$s</string>
+    <string name="error_api_http_error">Lỗi khi gọi Gemini API (HTTP %1$d): %2$s</string>
+    <string name="error_no_candidates">Gemini không trả về kết quả nào.</string>
+    <string name="error_prohibited_content">Nội dung ảnh bị chặn bởi bộ lọc an toàn của Gemini.</string>
+    <string name="error_no_content">Gemini không trả về nội dung ảnh.</string>
+    <string name="error_no_image_in_response">Không tìm thấy dữ liệu ảnh trong phản hồi của Gemini.</string>
+    <string name="error_image_decode_failed">Không giải mã được ảnh trả về từ Gemini.</string>
+    <string name="error_save_failed">Không lưu được ảnh: %1$s</string>
+    <string name="error_unknown">Lỗi không xác định: %1$s</string>
+</resources>

@@ -55,8 +55,9 @@ fun EditorScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var styleMenuExpanded by remember { mutableStateOf(false) }
 
-    LaunchedEffect(uiState.errorMessage) {
-        uiState.errorMessage?.let {
+    val errorText = uiState.error?.localizedMessage()
+    LaunchedEffect(errorText) {
+        errorText?.let {
             snackbarHostState.showSnackbar(it)
             viewModel.clearMessages()
         }
@@ -101,7 +102,7 @@ fun EditorScreen(
             ) {
                 OutlinedTextField(
                     readOnly = true,
-                    value = selectedStyle.label,
+                    value = stringResource(styleLabelRes(selectedStyle.key)),
                     onValueChange = {},
                     label = { Text(stringResource(R.string.style_label)) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = styleMenuExpanded) },
@@ -115,7 +116,7 @@ fun EditorScreen(
                 ) {
                     Styles.ALL.forEach { style ->
                         DropdownMenuItem(
-                            text = { Text(style.label) },
+                            text = { Text(stringResource(styleLabelRes(style.key))) },
                             onClick = {
                                 viewModel.selectStyle(style.key)
                                 styleMenuExpanded = false

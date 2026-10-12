@@ -3,6 +3,8 @@ package com.ngiangbao.photoaistudio.ai
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Base64
+import com.ngiangbao.photoaistudio.util.AppError
+import com.ngiangbao.photoaistudio.util.AppException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -23,16 +25,17 @@ import java.util.concurrent.TimeUnit
  * there is no equivalent first-party Kotlin SDK bundled here, so this calls the same
  * `generateContent` REST endpoint directly over HTTPS with OkHttp, which keeps behaviour
  * (prompt, image resizing, PROHIBITED_CONTENT handling) identical to the desktop version.
+ *
+ * Errors are thrown as AppException(AppError) rather than plain strings so the UI layer can
+ * render them in either Vietnamese or English (see util/AppError.kt, ui/ErrorMessages.kt).
  */
-class GeminiEditException(message: String) : Exception(message)
-
 class GeminiEditor(
     private val apiKey: String,
     private val model: String = "gemini-2.5-flash-image",
 ) {
     init {
         if (apiKey.isBlank()) {
-            throw GeminiEditException("Chua co Gemini API key. Vao Cai dat de nhap key.")
+            throw AppException(AppError.MissingApiKey)
         }
     }
 
@@ -51,7 +54,7 @@ class GeminiEditor(
         extraInstruction: String = "",
     ): Bitmap = withContext(Dispatchers.IO) {
         val style = Styles.BY_KEY[styleKey]
-            ?: throw GeminiEditException("Khong tim thay phong cach: $styleKey")
+            ?: throw AppException(AppError.StyleNotFound(styleKey))
 
         var prompt = style.prompt
         if (extraInstruction.isNotBlank()) {
@@ -59,7 +62,7 @@ class GeminiEditor(
         }
 
         val sourceBitmap = BitmapFactory.decodeFile(imagePath)
-            ?: throw GeminiEditException("Khong doc duoc anh: $imagePath")
+            ?: throw AppException(AppError.ImageReadFailed(imagePath))
         val resized = resizeToFit(sourceBitmap, 2048)
         val base64Image = bitmapToBase64Jpeg(resized)
 
@@ -96,7 +99,7 @@ class GeminiEditor(
         val response = try {
             client.newCall(request).execute()
         } catch (exc: Exception) {
-            throw GeminiEditException("Loi khi goi Gemini API: ${exc.message}")
+            throw AppException(AppError.NetworkCallFailed(exc.message ?: exc.toString()))
         }
 
         response.use { resp ->
@@ -107,25 +110,25 @@ class GeminiEditor(
                 } catch (_: Exception) {
                     null
                 } ?: bodyString
-                throw GeminiEditException("Loi khi goi Gemini API (HTTP ${resp.code}): $detail")
+                throw AppException(AppError.ApiHttpError(resp.code, detail))
             }
 
             val root = JSONObject(bodyString)
             val candidates = root.optJSONArray("candidates")
             if (candidates == null || candidates.length() == 0) {
-                throw GeminiEditException("Gemini khong tra ve ket qua nao.")
+                throw AppException(AppError.NoCandidatesReturned)
             }
 
             val firstCandidate = candidates.getJSONObject(0)
             val finishReason = firstCandidate.optString("finishReason", "")
             if (finishReason == "PROHIBITED_CONTENT") {
-                throw GeminiEditException("Noi dung anh bi chan boi bo loc an toan cua Gemini.")
+                throw AppException(AppError.ProhibitedContent)
             }
 
             val content = firstCandidate.optJSONObject("content")
-                ?: throw GeminiEditException("Gemini khong tra ve noi dung anh.")
+                ?: throw AppException(AppError.NoContentReturned)
             val parts = content.optJSONArray("parts")
-                ?: throw GeminiEditException("Gemini khong tra ve noi dung anh.")
+                ?: throw AppException(AppError.NoContentReturned)
 
             for (i in 0 until parts.length()) {
                 val part = parts.getJSONObject(i)
@@ -134,11 +137,11 @@ class GeminiEditor(
                 if (!data.isNullOrBlank()) {
                     val bytes = Base64.decode(data, Base64.DEFAULT)
                     return@withContext BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                        ?: throw GeminiEditException("Khong giai ma duoc anh tra ve tu Gemini.")
+                        ?: throw AppException(AppError.ImageDecodeFailed)
                 }
             }
 
-            throw GeminiEditException("Khong tim thay du lieu anh trong phan hoi cua Gemini.")
+            throw AppException(AppError.NoImageInResponse)
         }
     }
 
@@ -167,8 +170,12 @@ class GeminiEditor(
         fun saveResult(bitmap: Bitmap, outputPath: String) {
             val outFile = File(outputPath)
             outFile.parentFile?.mkdirs()
-            FileOutputStream(outFile).use { out ->
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
+            try {
+                FileOutputStream(outFile).use { out ->
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
+                }
+            } catch (exc: Exception) {
+                throw AppException(AppError.SaveFailed(exc.message ?: exc.toString()))
             }
         }
     }

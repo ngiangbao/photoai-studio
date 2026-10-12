@@ -83,14 +83,16 @@ fun HomeScreen(
         }
     }
 
-    LaunchedEffect(uiState.errorMessage) {
-        uiState.errorMessage?.let {
+    val errorText = uiState.error?.localizedMessage()
+    LaunchedEffect(errorText) {
+        errorText?.let {
             snackbarHostState.showSnackbar(it)
             viewModel.clearMessages()
         }
     }
-    LaunchedEffect(uiState.statusMessage) {
-        uiState.statusMessage?.let {
+    val statusText = uiState.status?.localizedMessage()
+    LaunchedEffect(statusText) {
+        statusText?.let {
             snackbarHostState.showSnackbar(it)
         }
     }

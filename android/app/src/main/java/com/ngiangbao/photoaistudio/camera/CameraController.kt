@@ -9,6 +9,8 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
+import com.ngiangbao.photoaistudio.util.AppError
+import com.ngiangbao.photoaistudio.util.AppException
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.File
 import java.text.SimpleDateFormat
@@ -16,8 +18,6 @@ import java.util.Date
 import java.util.Locale
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
-
-class CameraControllerException(message: String) : Exception(message)
 
 /**
  * camera/CameraController.kt - Thay the camera/digicam.py.
@@ -69,7 +69,7 @@ class CameraController(private val context: Context) {
     /** Chup 1 tam anh va luu vao captureFolder. Tra ve duong dan file anh. */
     suspend fun capturePhoto(filename: String? = null): File {
         val capture = imageCapture
-            ?: throw CameraControllerException("Camera chua san sang. Hay cho man hinh xem truoc hien len roi thu lai.")
+            ?: throw AppException(AppError.CameraNotReady)
 
         val name = filename ?: "IMG_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())}.jpg"
         val targetFile = File(captureFolder, name)
@@ -86,7 +86,7 @@ class CameraController(private val context: Context) {
 
                     override fun onError(exception: ImageCaptureException) {
                         continuation.resumeWithException(
-                            CameraControllerException("Chup anh that bai: ${exception.message}"),
+                            AppException(AppError.CaptureFailed(exception.message ?: exception.toString())),
                         )
                     }
                 },
@@ -103,7 +103,7 @@ class CameraController(private val context: Context) {
                         continuation.resume(future.get())
                     } catch (exc: Exception) {
                         continuation.resumeWithException(
-                            CameraControllerException("Khong khoi tao duoc camera: ${exc.message}"),
+                            AppException(AppError.CameraInitFailed(exc.message ?: exc.toString())),
                         )
                     }
                 },
