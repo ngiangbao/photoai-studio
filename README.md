@@ -2,9 +2,9 @@
 
 # 📸 PhotoAI Studio
 
-**Chụp ảnh tethering từ máy ảnh qua USB và tự động chỉnh sửa bằng AI — giao diện kiểu app chỉnh ảnh di động, thân thiện cảm ứng**
+**Chụp ảnh tethering từ máy ảnh qua USB và tự động chỉnh sửa bằng AI — giao diện desktop chuyên nghiệp kiểu 醒图/Xingtu Pro & CapCut Windows, nền tối + điểm nhấn xanh chanh neon**
 
-![Version](https://img.shields.io/badge/version-alpha--004-orange)
+![Version](https://img.shields.io/badge/version-alpha--005-orange)
 ![Platform](https://img.shields.io/badge/platform-Windows-0078D6?logo=windows)
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white)
 ![UI](https://img.shields.io/badge/UI-PySide6-41CD52?logo=qt&logoColor=white)
@@ -25,15 +25,21 @@
 **PhotoAI Studio** là ứng dụng desktop cho Windows giúp nhiếp ảnh gia rút ngắn quy trình chụp
 & hậu kỳ: kết nối máy ảnh qua dây USB, chụp trực tiếp từ phần mềm, chọn ảnh và phong cách
 mong muốn, để AI tự động chỉnh sửa theo đúng phong cách đó — thay vì chỉnh tay từng ảnh trên
-Lightroom/Photoshop. Giao diện lấy cảm hứng từ các app chỉnh ảnh di động phổ biến (kiểu
-Xingtu/Meitu): thanh điều hướng dưới, thẻ chọn phong cách dạng carousel, thanh kéo so sánh
-trước/sau, và các nút/vùng chạm đủ lớn để dùng tốt trên cả màn hình cảm ứng. Ứng dụng hỗ trợ
-song ngữ **Tiếng Việt / English**, chuyển đổi ngay trong app không cần khởi động lại.
+Lightroom/Photoshop. Từ `alpha-005`, giao diện được dựng lại hoàn toàn theo hướng **desktop
+chuyên nghiệp, native Windows 11**: cửa sổ frameless bo góc với backdrop Mica, title bar tuỳ
+biến (kéo thả/thu nhỏ/phóng to/đóng mượt như app hệ thống), thanh điều hướng dọc bên trái thay
+cho thanh dưới, bố cục 2 cột "ảnh lớn bên trái — bảng điều khiển cuộn được bên phải" cho các
+trang chỉnh sửa, cùng bảng màu **nền tối (gần đen) + điểm nhấn xanh chanh neon** lấy cảm hứng
+từ 醒图/Xingtu Pro (bản PC) và CapCut Windows. Mọi chuyển trang, hover, nhấn nút đều có
+animation easing mượt; các nút/vùng chạm vẫn đủ lớn để dùng tốt trên màn hình cảm ứng. Ứng
+dụng hỗ trợ song ngữ **Tiếng Việt / English**, chuyển đổi ngay trong app không cần khởi động
+lại.
 
-> ⚠️ **Đang trong giai đoạn `alpha-004`** — các tính năng cốt lõi đã hoạt động nhưng chưa được
+> ⚠️ **Đang trong giai đoạn `alpha-005`** — các tính năng cốt lõi đã hoạt động nhưng chưa được
 > kiểm thử rộng rãi trên nhiều dòng máy ảnh. Phản hồi & issue luôn được chào đón.
 >
-> Từ `alpha-004`, app có thể **tự kiểm tra và tải bản cập nhật mới** ngay trong app — xem chi
+> Từ `alpha-004`, app có thể **tự kiểm tra và tải bản cập nhật mới** ngay trong app. Từ
+> `alpha-005`, toàn bộ giao diện được làm lại theo phong cách desktop native Windows — xem chi
 > tiết bên dưới.
 
 ## ✨ Tính năng
@@ -93,10 +99,10 @@ photoai_app/
 │   ├── manual_edit.py         # Chỉnh tay (sáng/tương phản/bão hoà/nét/xoay) + blend AI
 │   └── one_tap.py             # Công cụ 1-chạm cục bộ: cân bằng trắng, tự động chỉnh (không cần AI)
 └── ui/
-    ├── theme.py                # Bảng màu & QSS (giao diện tối, điểm nhấn hồng/tím)
-    ├── widgets.py               # Thanh điều hướng dưới, chip phong cách, compare slider
-    ├── pages.py                 # 4 trang: Thư viện / Chỉnh AI / Chỉnh tay / Cài đặt
-    └── main_window.py           # Cửa sổ chính, điều phối các trang
+    ├── theme.py                # Bảng màu & QSS (nền tối, điểm nhấn xanh chanh) + Mica/rounded-corners native Windows 11 (ctypes/DWM)
+    ├── widgets.py               # TitleBar tuỳ biến, NavRail (thanh điều hướng dọc), chip phong cách, compare slider
+    ├── pages.py                 # 4 trang: Thư viện / Chỉnh AI / Chỉnh tay / Cài đặt — bố cục 2 cột canvas + control panel
+    └── main_window.py           # Cửa sổ chính frameless, điều phối các trang
 ```
 
 | Thành phần | Công nghệ |
@@ -172,6 +178,8 @@ pyinstaller --name "PhotoAI Studio" --windowed --onedir --icon assets/icon.ico m
 - [x] Xử lý hàng loạt nhiều ảnh cùng lúc (batch processing)
 - [x] Tuỳ chỉnh / lưu phong cách của riêng người dùng (preset)
 - [x] Tự động kiểm tra & tải bản cập nhật mới từ GitHub Releases
+- [x] Làm lại toàn bộ giao diện theo phong cách desktop native Windows 11 (frameless + Mica,
+      thanh điều hướng dọc, bố cục 2 cột, bảng màu tối + xanh chanh)
 - [ ] Chỉnh dáng mặt (face reshape/lift) bằng landmark — cần thêm thư viện nhận diện khuôn mặt,
       hiện tại các hiệu ứng khuôn mặt vẫn đi qua AI tạo sinh (phong cách Chân dung) thay vì warp
       mesh chính xác theo điểm mốc

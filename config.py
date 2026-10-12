@@ -8,7 +8,7 @@ from pathlib import Path
 from i18n import LANG_VI, detect_system_language
 
 APP_NAME = "PhotoAI Studio"
-APP_VERSION = "alpha-004"
+APP_VERSION = "alpha-005"
 
 CONFIG_DIR = Path(os.getenv("APPDATA", str(Path.home()))) / "PhotoAIStudio"
 CONFIG_FILE = CONFIG_DIR / "config.json"

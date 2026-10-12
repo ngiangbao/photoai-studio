@@ -1,5 +1,7 @@
 """
 ui/pages.py - 4 trang chinh cua ung dung: Thu vien, Chinh AI, Chinh tay, Cai dat.
+Giao dien to chuc theo tung 'the' (card) bo tron de nhom noi dung, tham khao bang
+dieu khien cua CapCut va bo loc/preset cua 醒图 (Xingtu/retouchpics.com).
 """
 from pathlib import Path
 from typing import Optional
@@ -10,15 +12,21 @@ from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QListWidget, QListWidgetItem, QScrollArea, QFrame, QSlider, QLineEdit,
-    QFormLayout, QFileDialog, QTextEdit, QComboBox, QAbstractItemView, QMenu, QCheckBox
+    QFormLayout, QFileDialog, QTextEdit, QComboBox, QAbstractItemView, QMenu
 )
 
 from ai.styles import STYLES
 from ai.manual_edit import ManualAdjustments
-from ui.widgets import StyleChip, CompareSlider, pil_to_pixmap
+from ui.widgets import StyleChip, CompareSlider, ToggleSwitch, pil_to_pixmap
 from i18n import t, get_language, set_language, SUPPORTED_LANGUAGES, LANGUAGE_NAMES
 
-THUMB_SIZE = QSize(150, 150)
+THUMB_SIZE = QSize(190, 190)
+
+# Chieu rong co dinh cho cot dieu khien ben phai trong bo cuc 2 cot (canvas lon ben
+# trai + bang dieu khien ben phai) kieu app chinh anh desktop chuyen nghiep (tham
+# khao ban PC cua 醒图/Xingtu Pro - retouchpics.com - va CapCut Windows), dung chung
+# cho trang Chinh AI va Chinh tay de giao dien dong nhat khi chuyen qua lai.
+CONTROL_PANEL_WIDTH = 360
 
 STYLE_EMOJI = {
     "portrait": "🧑",
@@ -43,6 +51,51 @@ def caption(text: str) -> QLabel:
     return label
 
 
+def make_card(title_label: Optional[QLabel] = None) -> tuple[QFrame, QVBoxLayout]:
+    """Tao mot khung 'Card' bo tron de nhom noi dung (giong bang dieu khien cua
+    CapCut/Xingtu). title_label (tuy chon) la mot QLabel da tao san (vd mot caption
+    co san duoc tai su dung) - se duoc gan lai object name 'CardTitle' va dat len
+    dau card, de khong can them khoa dich moi cho tieu de."""
+    frame = QFrame()
+    frame.setObjectName("Card")
+    inner = QVBoxLayout(frame)
+    inner.setContentsMargins(16, 14, 16, 16)
+    inner.setSpacing(10)
+    if title_label is not None:
+        title_label.setObjectName("CardTitle")
+        inner.addWidget(title_label)
+    return frame, inner
+
+
+def make_canvas_card() -> tuple[QFrame, QVBoxLayout]:
+    """Tao khung 'CanvasCard' - the lon bo goc rong hon dung lam vung xem anh chinh
+    (ben trai trong bo cuc 2 cot), tham khao khung anh lon bo goc cua retouchpics.com
+    ban PC va vung preview cua CapCut Windows."""
+    frame = QFrame()
+    frame.setObjectName("CanvasCard")
+    inner = QVBoxLayout(frame)
+    inner.setContentsMargins(14, 14, 14, 14)
+    inner.setSpacing(10)
+    return frame, inner
+
+
+def make_control_panel() -> tuple[QScrollArea, QVBoxLayout]:
+    """Tao cot dieu khien ben phai (scroll doc, chieu rong co dinh) dung chung cho
+    cac trang co bo cuc 2 cot (Chinh AI, Chinh tay)."""
+    scroll = QScrollArea()
+    scroll.setWidgetResizable(True)
+    scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+    scroll.setFrameShape(QFrame.Shape.NoFrame)
+    scroll.setFixedWidth(CONTROL_PANEL_WIDTH)
+
+    inner = QWidget()
+    layout = QVBoxLayout(inner)
+    layout.setContentsMargins(0, 0, 4, 0)
+    layout.setSpacing(12)
+    scroll.setWidget(inner)
+    return scroll, layout
+
+
 # ---------------------------------------------------------------------------
 # 1. Trang Thu vien
 # ---------------------------------------------------------------------------
@@ -54,31 +107,32 @@ class LibraryPage(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 12)
-        layout.setSpacing(16)
+        layout.setContentsMargins(24, 20, 24, 20)
+        layout.setSpacing(14)
 
         header = QHBoxLayout()
         self.title_label = section_title(t("library.title"))
         header.addWidget(self.title_label)
         header.addStretch()
-        layout.addLayout(header)
-
         self.capture_btn = QPushButton(t("library.capture_button"))
         self.capture_btn.setObjectName("PrimaryButton")
         self.capture_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.capture_btn.clicked.connect(self.captureRequested.emit)
-        layout.addWidget(self.capture_btn)
+        header.addWidget(self.capture_btn)
+        layout.addLayout(header)
 
         selection_row = QHBoxLayout()
+        selection_row.setSpacing(8)
         self.multi_select_btn = QPushButton(t("library.multi_select_button"))
         self.multi_select_btn.setObjectName("SecondaryButton")
         self.multi_select_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.multi_select_btn.setCheckable(True)
         self.multi_select_btn.toggled.connect(self._on_multi_select_toggled)
         selection_row.addWidget(self.multi_select_btn)
+        selection_row.addStretch()
 
         self.batch_btn = QPushButton()
-        self.batch_btn.setObjectName("SecondaryButton")
+        self.batch_btn.setObjectName("PrimaryButton")
         self.batch_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.batch_btn.setEnabled(False)
         self.batch_btn.setVisible(False)
@@ -87,6 +141,7 @@ class LibraryPage(QWidget):
         layout.addLayout(selection_row)
 
         self.photo_list = QListWidget()
+        self.photo_list.setObjectName("PhotoGrid")
         self.photo_list.setViewMode(QListWidget.ViewMode.IconMode)
         self.photo_list.setIconSize(THUMB_SIZE)
         self.photo_list.setResizeMode(QListWidget.ResizeMode.Adjust)
@@ -165,26 +220,47 @@ class AIEditPage(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 12)
-        layout.setSpacing(14)
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(24, 20, 24, 20)
+        outer.setSpacing(14)
 
         self.title_label = section_title(t("ai.title"))
-        layout.addWidget(self.title_label)
+        outer.addWidget(self.title_label)
 
+        # Bo cuc 2 cot kieu app chinh anh desktop chuyen nghiep: canvas lon ben trai
+        # (anh xem truoc + thanh keo so sanh truoc/sau) + bang dieu khien co chieu
+        # rong co dinh ben phai (carousel phong cach, cuong do, ghi chu, hanh dong) -
+        # tham khao bo cuc ban PC cua 醒图/Xingtu Pro (retouchpics.com) va CapCut Windows.
+        split = QHBoxLayout()
+        split.setSpacing(16)
+        outer.addLayout(split, stretch=1)
+
+        # ---- Cot trai: canvas xem truoc + thanh keo so sanh truoc/sau ----
+        canvas_card, canvas_layout = make_canvas_card()
         self.compare = CompareSlider()
-        self.compare.setMinimumHeight(320)
-        layout.addWidget(self.compare, stretch=1)
+        self.compare.setMinimumHeight(300)
+        canvas_layout.addWidget(self.compare, stretch=1)
         self.compare_hint = caption(t("ai.compare_hint"))
-        layout.addWidget(self.compare_hint)
+        canvas_layout.addWidget(self.compare_hint)
+        split.addWidget(canvas_card, stretch=1)
 
+        # ---- Cot phai: bang dieu khien (cuon doc, chieu rong co dinh) ----
+        control_scroll, layout = make_control_panel()
+        right_col = QVBoxLayout()
+        right_col.setSpacing(10)
+        right_col.addWidget(control_scroll, stretch=1)
+        split.addLayout(right_col, stretch=0)
+
+        # ---- Card: carousel chon phong cach / preset ----
         self.choose_style_label = caption(t("ai.choose_style"))
-        layout.addWidget(self.choose_style_label)
+        style_card, style_layout = make_card(self.choose_style_label)
+
         carousel_scroll = QScrollArea()
         carousel_scroll.setWidgetResizable(True)
         carousel_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         carousel_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        carousel_scroll.setFixedHeight(120)
+        carousel_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        carousel_scroll.setFixedHeight(136)
 
         carousel_inner = QWidget()
         carousel_layout = QHBoxLayout(carousel_inner)
@@ -202,20 +278,24 @@ class AIEditPage(QWidget):
         self._presets: list[dict] = []
         carousel_layout.addStretch()
         carousel_scroll.setWidget(carousel_inner)
-        layout.addWidget(carousel_scroll)
+        style_layout.addWidget(carousel_scroll)
+        layout.addWidget(style_card)
 
         if STYLES:
             self.style_chips[STYLES[0].key].setChecked(True)
         self._selected_style = STYLES[0].key if STYLES else None
         self._before_pixmap: Optional[QPixmap] = None
 
-        intensity_row = QHBoxLayout()
+        # ---- Card: cuong do hieu ung + ghi chu tuy chinh ----
         self.intensity_label = caption(t("ai.intensity"))
-        intensity_row.addWidget(self.intensity_label)
+        tune_card, tune_layout = make_card(self.intensity_label)
+
+        intensity_row = QHBoxLayout()
         self.intensity_value_label = QLabel("100%")
+        self.intensity_value_label.setObjectName("FieldLabel")
         intensity_row.addStretch()
         intensity_row.addWidget(self.intensity_value_label)
-        layout.addLayout(intensity_row)
+        tune_layout.addLayout(intensity_row)
 
         self.intensity_slider = QSlider(Qt.Orientation.Horizontal)
         self.intensity_slider.setRange(0, 100)
@@ -223,14 +303,18 @@ class AIEditPage(QWidget):
         self.intensity_slider.valueChanged.connect(
             lambda v: self.intensity_value_label.setText(f"{v}%")
         )
-        layout.addWidget(self.intensity_slider)
+        tune_layout.addWidget(self.intensity_slider)
 
         self.extra_edit = QTextEdit()
         self.extra_edit.setPlaceholderText(t("ai.extra_placeholder"))
-        self.extra_edit.setFixedHeight(50)
-        layout.addWidget(self.extra_edit)
+        self.extra_edit.setFixedHeight(60)
+        tune_layout.addWidget(self.extra_edit)
+        layout.addWidget(tune_card)
+        layout.addStretch()
 
+        # ---- Thanh hanh dong, ghim duoi cung cot phai (ngoai vung cuon) ----
         actions_row = QHBoxLayout()
+        actions_row.setSpacing(10)
         self.process_btn = QPushButton(t("ai.process_button"))
         self.process_btn.setObjectName("PrimaryButton")
         self.process_btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -242,13 +326,13 @@ class AIEditPage(QWidget):
         self.save_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.save_btn.setEnabled(False)
         actions_row.addWidget(self.save_btn)
-        layout.addLayout(actions_row)
+        right_col.addLayout(actions_row)
 
         self.save_preset_btn = QPushButton(t("ai.save_preset_button"))
         self.save_preset_btn.setObjectName("SecondaryButton")
         self.save_preset_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.save_preset_btn.clicked.connect(self.presetSaveRequested.emit)
-        layout.addWidget(self.save_preset_btn)
+        right_col.addWidget(self.save_preset_btn)
 
     def _select_style(self, key: str):
         self._selected_style = key
@@ -348,36 +432,45 @@ class ManualEditPage(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 12)
-        layout.setSpacing(14)
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(24, 20, 24, 20)
+        outer.setSpacing(14)
 
         self.title_label = section_title(t("manual.title"))
-        layout.addWidget(self.title_label)
+        outer.addWidget(self.title_label)
 
+        # Bo cuc 2 cot giong trang Chinh AI: canvas lon ben trai, bang dieu khien
+        # (cac thanh truot) co chieu rong co dinh ben phai.
+        split = QHBoxLayout()
+        split.setSpacing(16)
+        outer.addLayout(split, stretch=1)
+
+        # ---- Cot trai: anh xem truoc + xoay + cong cu 1 cham ----
+        canvas_card, canvas_layout = make_canvas_card()
         self._has_image = False
         self.preview_label = QLabel(t("manual.no_image"))
         self.preview_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.preview_label.setMinimumHeight(260)
-        self.preview_label.setObjectName("Card")
-        layout.addWidget(self.preview_label, stretch=1)
+        self.preview_label.setMinimumHeight(240)
+        canvas_layout.addWidget(self.preview_label, stretch=1)
 
         rotate_row = QHBoxLayout()
-        rotate_left = QPushButton("⟲")
-        rotate_left.setObjectName("IconButton")
-        rotate_left.setCursor(Qt.CursorShape.PointingHandCursor)
-        rotate_left.clicked.connect(lambda: self.rotateRequested.emit(-90))
-        rotate_right = QPushButton("⟳")
-        rotate_right.setObjectName("IconButton")
-        rotate_right.setCursor(Qt.CursorShape.PointingHandCursor)
-        rotate_right.clicked.connect(lambda: self.rotateRequested.emit(90))
-        rotate_row.addWidget(rotate_left)
-        rotate_row.addWidget(rotate_right)
+        self.rotate_left_btn = QPushButton("⟲")
+        self.rotate_left_btn.setObjectName("IconButton")
+        self.rotate_left_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.rotate_left_btn.setToolTip(t("manual.rotate_left_tooltip"))
+        self.rotate_left_btn.setAccessibleName(t("manual.rotate_left_tooltip"))
+        self.rotate_left_btn.clicked.connect(lambda: self.rotateRequested.emit(-90))
+        self.rotate_right_btn = QPushButton("⟳")
+        self.rotate_right_btn.setObjectName("IconButton")
+        self.rotate_right_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.rotate_right_btn.setToolTip(t("manual.rotate_right_tooltip"))
+        self.rotate_right_btn.setAccessibleName(t("manual.rotate_right_tooltip"))
+        self.rotate_right_btn.clicked.connect(lambda: self.rotateRequested.emit(90))
+        rotate_row.addWidget(self.rotate_left_btn)
+        rotate_row.addWidget(self.rotate_right_btn)
         rotate_row.addStretch()
-        layout.addLayout(rotate_row)
 
         # Cong cu 1 cham (xu ly cuc bo, khong can AI): can bang trang, tu dong chinh
-        one_tap_row = QHBoxLayout()
         self.white_balance_btn = QPushButton(t("manual.white_balance_button"))
         self.white_balance_btn.setObjectName("SecondaryButton")
         self.white_balance_btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -386,10 +479,19 @@ class ManualEditPage(QWidget):
         self.auto_adjust_btn.setObjectName("SecondaryButton")
         self.auto_adjust_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.auto_adjust_btn.clicked.connect(self.autoAdjustRequested.emit)
-        one_tap_row.addWidget(self.white_balance_btn)
-        one_tap_row.addWidget(self.auto_adjust_btn)
-        layout.addLayout(one_tap_row)
+        rotate_row.addWidget(self.white_balance_btn)
+        rotate_row.addWidget(self.auto_adjust_btn)
+        canvas_layout.addLayout(rotate_row)
+        split.addWidget(canvas_card, stretch=1)
 
+        # ---- Cot phai: bang dieu khien (cac thanh truot, cuon doc) ----
+        control_scroll, layout = make_control_panel()
+        right_col = QVBoxLayout()
+        right_col.setSpacing(10)
+        right_col.addWidget(control_scroll, stretch=1)
+        split.addLayout(right_col, stretch=0)
+
+        sliders_card, sliders_layout = make_card()
         self.sliders: dict[str, QSlider] = {}
         self.slider_labels: dict[str, QLabel] = {}
         for key, label_key in self.SLIDER_SPECS:
@@ -398,16 +500,20 @@ class ManualEditPage(QWidget):
             self.slider_labels[key] = label_widget
             row_label.addWidget(label_widget)
             row_label.addStretch()
-            layout.addLayout(row_label)
+            sliders_layout.addLayout(row_label)
 
             slider = QSlider(Qt.Orientation.Horizontal)
             slider.setRange(0, 200)
             slider.setValue(100)
             slider.valueChanged.connect(self._emit_adjustments)
-            layout.addWidget(slider)
+            sliders_layout.addWidget(slider)
             self.sliders[key] = slider
+        layout.addWidget(sliders_card)
+        layout.addStretch()
 
+        # ---- Thanh hanh dong, ghim duoi cung cot phai (ngoai vung cuon) ----
         actions_row = QHBoxLayout()
+        actions_row.setSpacing(10)
         self.reset_btn = QPushButton(t("manual.reset_button"))
         self.reset_btn.setObjectName("SecondaryButton")
         self.reset_btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -419,7 +525,7 @@ class ManualEditPage(QWidget):
         self.save_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.save_btn.clicked.connect(self.saveRequested.emit)
         actions_row.addWidget(self.save_btn)
-        layout.addLayout(actions_row)
+        right_col.addLayout(actions_row)
 
     def _emit_adjustments(self, *_args):
         adj = ManualAdjustments(
@@ -461,6 +567,10 @@ class ManualEditPage(QWidget):
         self.save_btn.setText(t("manual.save_button"))
         self.white_balance_btn.setText(t("manual.white_balance_button"))
         self.auto_adjust_btn.setText(t("manual.auto_adjust_button"))
+        self.rotate_left_btn.setToolTip(t("manual.rotate_left_tooltip"))
+        self.rotate_left_btn.setAccessibleName(t("manual.rotate_left_tooltip"))
+        self.rotate_right_btn.setToolTip(t("manual.rotate_right_tooltip"))
+        self.rotate_right_btn.setAccessibleName(t("manual.rotate_right_tooltip"))
 
 
 # ---------------------------------------------------------------------------
@@ -471,50 +581,99 @@ class SettingsPage(QWidget):
     languageChanged = Signal(str)
     checkUpdateRequested = Signal()
 
+    MAX_CONTENT_WIDTH = 640  # cot noi dung gioi han chieu rong, kieu app Cai dat cua Windows 11
+
     def __init__(self, parent=None):
         super().__init__(parent)
         outer = QVBoxLayout(self)
-        outer.setContentsMargins(20, 20, 20, 12)
-        outer.setSpacing(16)
+        outer.setContentsMargins(24, 20, 24, 20)
+        outer.setSpacing(12)
         self.title_label = section_title(t("settings.title"))
         outer.addWidget(self.title_label)
 
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        outer.addWidget(scroll)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        outer.addWidget(scroll, stretch=1)
+
+        # Cot noi dung gioi han chieu rong toi da va can giua trong vung cuon - kieu
+        # app Cai dat native cua Windows 11 (khong keo gian form ra het chieu rong
+        # cua so, du cua so rong kieu desktop).
+        centering = QWidget()
+        centering_layout = QHBoxLayout(centering)
+        centering_layout.setContentsMargins(0, 0, 0, 0)
+        centering_layout.addStretch()
+        scroll.setWidget(centering)
 
         inner = QWidget()
-        self.form = QFormLayout(inner)
-        self.form.setSpacing(14)
-        self.form.setLabelAlignment(Qt.AlignmentFlag.AlignLeft)
+        inner.setMaximumWidth(self.MAX_CONTENT_WIDTH)
+        cards_layout = QVBoxLayout(inner)
+        cards_layout.setContentsMargins(0, 0, 4, 0)
+        cards_layout.setSpacing(12)
+        centering_layout.addWidget(inner, stretch=1)
+        centering_layout.addStretch()
 
+        # ---- Card: Ngon ngu ----
+        self.language_row_label = QLabel(t("settings.language_label"))
+        lang_card, lang_form = self._card_form(self.language_row_label)
         self.language_combo = QComboBox()
         for code in SUPPORTED_LANGUAGES:
             self.language_combo.addItem(LANGUAGE_NAMES[code], userData=code)
         self.language_combo.currentIndexChanged.connect(self._on_language_changed)
-        self.language_row_label = self._add_row("settings.language_label", self.language_combo)
+        lang_form.addRow(self.language_combo)
+        cards_layout.addWidget(lang_card)
 
+        # ---- Card: Gemini AI ----
+        ai_card, ai_form = self._card_form(QLabel("Gemini AI"))
         self.api_key_edit = QLineEdit()
         self.api_key_edit.setEchoMode(QLineEdit.EchoMode.Password)
-        self.api_key_row_label = self._add_row("settings.api_key_label", self.api_key_edit)
-
+        self.api_key_row_label = self._add_row(ai_form, "settings.api_key_label", self.api_key_edit)
         self.model_edit = QLineEdit()
-        self.model_row_label = self._add_row("settings.model_label", self.model_edit)
+        self.model_row_label = self._add_row(ai_form, "settings.model_label", self.model_edit)
+        cards_layout.addWidget(ai_card)
 
+        # ---- Card: May anh & thu muc ----
+        folders_card, folders_layout = make_card()
+        folders_form = QFormLayout()
+        folders_form.setSpacing(12)
+        folders_form.setLabelAlignment(Qt.AlignmentFlag.AlignLeft)
+        folders_layout.addLayout(folders_form)
         self.digicam_edit, digicam_row = self._path_row(self._browse_digicam)
-        self.digicam_row_label = self._add_row("settings.digicam_label", digicam_row)
-
+        self.digicam_row_label = self._add_row(folders_form, "settings.digicam_label", digicam_row)
         self.capture_folder_edit, capture_row = self._path_row(self._browse_capture)
-        self.capture_row_label = self._add_row("settings.capture_folder_label", capture_row)
-
+        self.capture_row_label = self._add_row(folders_form, "settings.capture_folder_label", capture_row)
         self.output_folder_edit, output_row = self._path_row(self._browse_output)
-        self.output_row_label = self._add_row("settings.output_folder_label", output_row)
+        self.output_row_label = self._add_row(folders_form, "settings.output_folder_label", output_row)
+        cards_layout.addWidget(folders_card)
 
-        self.auto_update_checkbox = QCheckBox(t("settings.auto_update_checkbox"))
-        self.form.addRow(self.auto_update_checkbox)
+        # ---- Card: Cap nhat ----
+        update_card, update_layout = make_card()
+        toggle_row = QHBoxLayout()
+        self.auto_update_label = QLabel(t("settings.auto_update_checkbox"))
+        self.auto_update_label.setObjectName("FieldLabel")
+        self.auto_update_label.setWordWrap(True)
+        toggle_row.addWidget(self.auto_update_label, stretch=1)
+        self.auto_update_toggle = ToggleSwitch()
+        toggle_row.addWidget(self.auto_update_toggle)
+        update_layout.addLayout(toggle_row)
 
-        scroll.setWidget(inner)
+        self.check_update_btn = QPushButton(t("settings.check_update_button"))
+        self.check_update_btn.setObjectName("SecondaryButton")
+        self.check_update_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.check_update_btn.clicked.connect(self.checkUpdateRequested.emit)
+        update_layout.addWidget(self.check_update_btn)
+
+        self.update_status_label = caption("")
+        update_layout.addWidget(self.update_status_label)
+        cards_layout.addWidget(update_card)
+
+        cards_layout.addStretch()
+
+        self._app_name = ""
+        self._app_version = ""
+        self.version_label = caption("")
+        outer.addWidget(self.version_label)
 
         self.save_btn = QPushButton(t("settings.save_button"))
         self.save_btn.setObjectName("PrimaryButton")
@@ -522,23 +681,20 @@ class SettingsPage(QWidget):
         self.save_btn.clicked.connect(self._emit_save)
         outer.addWidget(self.save_btn)
 
-        self.check_update_btn = QPushButton(t("settings.check_update_button"))
-        self.check_update_btn.setObjectName("SecondaryButton")
-        self.check_update_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.check_update_btn.clicked.connect(self.checkUpdateRequested.emit)
-        outer.addWidget(self.check_update_btn)
+    @staticmethod
+    def _card_form(title_label: QLabel) -> tuple[QFrame, QFormLayout]:
+        card, card_layout = make_card(title_label)
+        form = QFormLayout()
+        form.setSpacing(12)
+        form.setLabelAlignment(Qt.AlignmentFlag.AlignLeft)
+        card_layout.addLayout(form)
+        return card, form
 
-        self.update_status_label = caption("")
-        outer.addWidget(self.update_status_label)
-
-        self._app_name = ""
-        self._app_version = ""
-        self.version_label = caption("")
-        outer.addWidget(self.version_label)
-
-    def _add_row(self, label_key: str, widget: QWidget) -> QLabel:
+    @staticmethod
+    def _add_row(form: QFormLayout, label_key: str, widget: QWidget) -> QLabel:
         label = QLabel(t(label_key))
-        self.form.addRow(label, widget)
+        label.setObjectName("FieldLabel")
+        form.addRow(label, widget)
         return label
 
     @staticmethod
@@ -593,7 +749,7 @@ class SettingsPage(QWidget):
             self.language_combo.setCurrentIndex(idx)
             self.language_combo.blockSignals(False)
 
-        self.auto_update_checkbox.setChecked(bool(cfg.get("auto_check_updates", True)))
+        self.auto_update_toggle.setChecked(bool(cfg.get("auto_check_updates", True)))
 
     def set_update_status(self, text: str):
         self.update_status_label.setText(text)
@@ -606,7 +762,7 @@ class SettingsPage(QWidget):
             "capture_folder": self.capture_folder_edit.text().strip(),
             "output_folder": self.output_folder_edit.text().strip(),
             "language": self.language_combo.currentData() or get_language(),
-            "auto_check_updates": self.auto_update_checkbox.isChecked(),
+            "auto_check_updates": self.auto_update_toggle.isChecked(),
         })
 
     def retranslate(self):
@@ -618,7 +774,7 @@ class SettingsPage(QWidget):
         self.capture_row_label.setText(t("settings.capture_folder_label"))
         self.output_row_label.setText(t("settings.output_folder_label"))
         self.save_btn.setText(t("settings.save_button"))
-        self.auto_update_checkbox.setText(t("settings.auto_update_checkbox"))
+        self.auto_update_label.setText(t("settings.auto_update_checkbox"))
         self.check_update_btn.setText(t("settings.check_update_button"))
         if self._app_name:
             self.version_label.setText(

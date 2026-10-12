@@ -8,10 +8,10 @@ from pathlib import Path
 from typing import Optional
 
 from PIL import Image
-from PySide6.QtCore import Qt, QThread, Signal, QFileSystemWatcher, QTimer
+from PySide6.QtCore import Qt, QThread, Signal, QFileSystemWatcher, QTimer, QPropertyAnimation, QEasingCurve
 from PySide6.QtWidgets import (
-    QMainWindow, QWidget, QVBoxLayout, QStackedWidget, QMessageBox,
-    QInputDialog, QProgressDialog, QApplication
+    QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QStackedWidget, QMessageBox,
+    QInputDialog, QProgressDialog, QApplication, QGraphicsOpacityEffect, QSizeGrip
 )
 
 from config import load_config, save_config, APP_NAME, APP_VERSION
@@ -20,8 +20,8 @@ from ai.gemini_editor import GeminiEditor, GeminiEditError
 from ai.manual_edit import ManualAdjustments, apply_adjustments, blend_with_original
 from ai.one_tap import auto_white_balance, smart_auto_adjust
 from updater import check_for_update, download_installer, UpdateCheckError
-from ui.theme import QSS
-from ui.widgets import BottomNavBar, NavItem
+from ui.theme import QSS, apply_windows_dark_titlebar, apply_windows_native_chrome
+from ui.widgets import NavRail, NavItem, TitleBar
 from ui.pages import LibraryPage, AIEditPage, ManualEditPage, SettingsPage
 from i18n import t, set_language
 
@@ -109,8 +109,16 @@ class MainWindow(QMainWindow):
         set_language(self.cfg.get("language", "vi"))
 
         self.setWindowTitle(f"{APP_NAME} ({APP_VERSION})")
-        self.resize(420, 780)
-        self.setMinimumSize(380, 640)
+        # Cua so frameless + nen trong suot: tu ve titlebar/khung rieng (ui/widgets.TitleBar)
+        # de bo goc tron + vat lieu Mica (Windows 11) nhin giong mot cua so desktop native
+        # (kieu CapCut Windows) thay vi khung cua so mac dinh. Kich thuoc mac dinh rong hon
+        # nhieu so voi cac ban truoc (von dang kieu man hinh dien thoai dung) de phu hop bo
+        # cuc 2 cot (canvas lon ben trai + bang dieu khien ben phai) kieu app desktop chuyen
+        # nghiep (xem ui/pages.py).
+        self.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        self.resize(1180, 760)
+        self.setMinimumSize(960, 600)
         self.setStyleSheet(QSS)
 
         self.selected_photo_path: Optional[str] = None
@@ -133,7 +141,10 @@ class MainWindow(QMainWindow):
         self._update_silent = True
         self._update_check_running = False
 
+        self._fade_anim = None
         self._build_ui()
+        apply_windows_dark_titlebar(self)
+        apply_windows_native_chrome(self)
         self._init_camera()
         self._init_watcher()
         self.library_page.refresh(self.cfg["capture_folder"])
@@ -146,11 +157,27 @@ class MainWindow(QMainWindow):
 
     # ------------------------------------------------------------------
     def _build_ui(self):
+        # RootContainer: mot QFrame duy nhat lam "khung ngoai" bo goc tron (2 goc tren
+        # - xem ui/theme.py), chua titlebar tuy bien + (nav rail doc + cac trang). Day
+        # la centralWidget cua QMainWindow; statusBar() van la widget rieng cua
+        # QMainWindow (nam duoi RootContainer) nhu truoc, chi doi mau/bo goc duoi qua QSS.
         central = QWidget()
+        central.setObjectName("RootContainer")
         self.setCentralWidget(central)
         root = QVBoxLayout(central)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
+
+        self.title_bar = TitleBar(f"{APP_NAME}")
+        self.title_bar.minimizeRequested.connect(self.showMinimized)
+        self.title_bar.maximizeRequested.connect(self._toggle_maximize)
+        self.title_bar.closeRequested.connect(self.close)
+        root.addWidget(self.title_bar)
+
+        body = QHBoxLayout()
+        body.setContentsMargins(0, 0, 0, 0)
+        body.setSpacing(0)
+        root.addLayout(body, stretch=1)
 
         self.stack = QStackedWidget()
         self.library_page = LibraryPage()
@@ -161,16 +188,20 @@ class MainWindow(QMainWindow):
         for page in (self.library_page, self.ai_page, self.manual_page, self.settings_page):
             self.stack.addWidget(page)
 
-        root.addWidget(self.stack, stretch=1)
-
-        self.nav = BottomNavBar([
+        self.nav = NavRail([
             NavItem("library", "nav.library", "🖼️"),
             NavItem("ai", "nav.ai", "✨"),
             NavItem("manual", "nav.manual", "🎚️"),
             NavItem("settings", "nav.settings", "⚙️"),
         ])
         self.nav.tabChanged.connect(self._on_tab_changed)
-        root.addWidget(self.nav)
+        body.addWidget(self.nav)
+        body.addWidget(self.stack, stretch=1)
+
+        # QSizeGrip o goc duoi-phai thanh trang thai: cua so frameless mat khu vuc
+        # keo-de-resize mac dinh cua Windows, QSizeGrip bu lai mot cach keo-tha quen
+        # thuoc (van co the keo canh cua so bang chuot o vung nay).
+        self.statusBar().addPermanentWidget(QSizeGrip(self))
 
         self.library_page.captureRequested.connect(self.on_capture_clicked)
         self.library_page.photoSelected.connect(self.on_photo_selected)
@@ -191,9 +222,50 @@ class MainWindow(QMainWindow):
 
         self.statusBar().showMessage(t("status.ready"))
 
+    def _toggle_maximize(self):
+        if self.isMaximized():
+            self.showNormal()
+        else:
+            self.showMaximized()
+
+    def changeEvent(self, event):
+        super().changeEvent(event)
+        # Dong bo thuoc tinh "maximized" (bat/tat bo goc tron qua QSS - xem ui/theme.py)
+        # moi khi trang thai cua so doi, ke ca khi nguoi dung phong to bang Aero Snap
+        # (keo len dau man hinh) thay vi bam nut Maximize - ca hai con duong deu di qua
+        # changeEvent nay nen khong bi lech trang thai.
+        if event.type() == event.Type.WindowStateChange:
+            is_max = self.isMaximized()
+            for widget in (self.centralWidget(), self.title_bar, self.statusBar()):
+                if widget is None:
+                    continue
+                widget.setProperty("maximized", is_max)
+                widget.style().unpolish(widget)
+                widget.style().polish(widget)
+            if hasattr(self, "title_bar"):
+                self.title_bar.max_btn.setText("❐" if is_max else "▢")
+
     def _on_tab_changed(self, key: str):
         index = {"library": 0, "ai": 1, "manual": 2, "settings": 3}.get(key, 0)
+        if index == self.stack.currentIndex():
+            return
+        # Chuyen trang ngay (dong bo) de logic/test khong phai cho animation; chi
+        # hieu ung mo dan (fade-in) la phan trang tri them cho muot mat, giong kieu
+        # chuyen tab cua CapCut/app di dong - khong lam cham hay thay doi hanh vi.
         self.stack.setCurrentIndex(index)
+        self._animate_stack_fade_in()
+
+    def _animate_stack_fade_in(self):
+        effect = QGraphicsOpacityEffect(self.stack)
+        self.stack.setGraphicsEffect(effect)
+        anim = QPropertyAnimation(effect, b"opacity", self)
+        anim.setDuration(160)
+        anim.setStartValue(0.0)
+        anim.setEndValue(1.0)
+        anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+        anim.finished.connect(lambda: self.stack.setGraphicsEffect(None))
+        anim.start()
+        self._fade_anim = anim  # giu tham chieu, tranh bi garbage-collect giua chung
 
     def _init_camera(self):
         self.digicam = DigiCamController(self.cfg["digicam_cmd_path"], self.cfg["capture_folder"])
@@ -598,6 +670,7 @@ class MainWindow(QMainWindow):
 
     def retranslate_ui(self):
         self.setWindowTitle(f"{APP_NAME} ({APP_VERSION})")
+        self.title_bar.retranslate()
         self.nav.retranslate()
         self.library_page.retranslate()
         self.ai_page.retranslate()

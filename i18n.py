@@ -82,6 +82,11 @@ STRINGS = {
     "manual.save_button": {"vi": "💾  Lưu ảnh", "en": "💾  Save Photo"},
     "manual.white_balance_button": {"vi": "🌈  Cân bằng trắng", "en": "🌈  White Balance"},
     "manual.auto_adjust_button": {"vi": "✨  Tự động chỉnh", "en": "✨  Smart Auto"},
+    "manual.rotate_left_tooltip": {"vi": "Xoay trái 90°", "en": "Rotate left 90°"},
+    "manual.rotate_right_tooltip": {"vi": "Xoay phải 90°", "en": "Rotate right 90°"},
+    "titlebar.minimize": {"vi": "Thu nhỏ", "en": "Minimize"},
+    "titlebar.maximize": {"vi": "Phóng to / Khôi phục", "en": "Maximize / Restore"},
+    "titlebar.close": {"vi": "Đóng", "en": "Close"},
 
     # ---- Trang Cai dat ----
     "settings.title": {"vi": "Cài đặt", "en": "Settings"},

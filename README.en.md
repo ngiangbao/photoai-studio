@@ -2,9 +2,9 @@
 
 # 📸 PhotoAI Studio
 
-**Tether your camera over USB and auto-edit photos with AI — a mobile-style photo-editing UI, touch-friendly**
+**Tether your camera over USB and auto-edit photos with AI — a professional desktop UI in the style of 醒图/Xingtu Pro & CapCut Windows, dark theme with a neon lime accent**
 
-![Version](https://img.shields.io/badge/version-alpha--004-orange)
+![Version](https://img.shields.io/badge/version-alpha--005-orange)
 ![Platform](https://img.shields.io/badge/platform-Windows-0078D6?logo=windows)
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white)
 ![UI](https://img.shields.io/badge/UI-PySide6-41CD52?logo=qt&logoColor=white)
@@ -25,15 +25,21 @@
 **PhotoAI Studio** is a Windows desktop app that shortens the shoot-and-edit workflow for
 photographers: connect your camera via USB, capture directly from the app, pick a photo and a
 style, and let AI edit it automatically in that style — instead of manually retouching every
-photo in Lightroom/Photoshop. The UI is inspired by popular mobile photo-editing apps (in the
-style of Xingtu/Meitu): a bottom navigation bar, a carousel of style chips, a before/after
-compare slider, and buttons/tap targets large enough to work well on touchscreens too.
+photo in Lightroom/Photoshop. Starting with `alpha-005`, the UI has been completely rebuilt
+around a **professional, native Windows 11 desktop** look: a rounded, frameless window with a
+Mica backdrop, a custom title bar (smooth drag/minimize/maximize/close just like a system app),
+a left-hand vertical nav rail instead of a bottom bar, a two-column "large photo canvas on the
+left — scrollable control panel on the right" layout for the editing pages, and a **dark
+(near-black) + neon lime accent** color palette inspired by 醒图/Xingtu Pro (desktop) and CapCut
+Windows. Every page transition, hover, and click uses smooth easing animation; buttons and tap
+targets are still large enough to work well on touchscreens too.
 
-> ⚠️ **Currently in `alpha-004`** — the core features work but haven't been tested widely
+> ⚠️ **Currently in `alpha-005`** — the core features work but haven't been tested widely
 > across camera models yet. Feedback and issues are always welcome.
 >
 > Starting with `alpha-004`, the app can **automatically check for and download updates**
-> right from inside the app — details below.
+> right from inside the app. Starting with `alpha-005`, the whole UI has been redesigned in a
+> native Windows desktop style — details below.
 
 ## ✨ Features
 
@@ -93,10 +99,10 @@ photoai_app/
 │   ├── manual_edit.py         # Manual edit (brightness/contrast/saturation/sharpness/rotate) + AI blend
 │   └── one_tap.py             # Local one-tap tools: white balance, smart auto adjust (no AI needed)
 └── ui/
-    ├── theme.py                # Color palette & QSS (dark theme, pink/purple accent)
-    ├── widgets.py               # Bottom nav bar, style chips, compare slider
-    ├── pages.py                 # 4 pages: Library / AI Edit / Manual / Settings
-    └── main_window.py           # Main window, coordinates the pages
+    ├── theme.py                # Color palette & QSS (dark theme, neon lime accent) + native Windows 11 Mica/rounded corners (ctypes/DWM)
+    ├── widgets.py               # Custom TitleBar, NavRail (vertical nav), style chips, compare slider
+    ├── pages.py                 # 4 pages: Library / AI Edit / Manual / Settings — two-column canvas + control panel layout
+    └── main_window.py           # Main frameless window, coordinates the pages
 ```
 
 | Component | Technology |
@@ -175,6 +181,8 @@ pyinstaller --name "PhotoAI Studio" --windowed --onedir --icon assets/icon.ico m
 - [x] Batch processing of multiple photos at once
 - [x] Custom/saveable user-defined styles (presets)
 - [x] Automatic update checking & download from GitHub Releases
+- [x] Full UI redesign in a native Windows 11 desktop style (frameless + Mica, vertical nav
+      rail, two-column layout, dark + neon lime palette)
 - [ ] Landmark-based face reshape/lift — needs a face-landmark library; face effects currently
       go through generative AI (the Portrait style) rather than a precise mesh warp
 - [ ] A stackable library of 1,200+ filters, matching the original 醒图 app
